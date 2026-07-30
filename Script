@@ -1,4 +1,4 @@
--- [[ Multi Save & TP - Delta Mobile ]]
+-- [[ mz hub - Multi Save & TP ]]
 -- Lista + Scroll + Selecionar (verde) + X para apagar + TP
 
 local Players = game:GetService("Players")
@@ -14,7 +14,7 @@ pcall(function()
     end
 end)
 
-local savedLocations = {} -- { {name = "Local 1", cframe = CFrame}, ... }
+local savedLocations = {}
 local selectedIndex = nil
 local minimized = false
 local maxSlots = 8
@@ -68,10 +68,11 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -45, 1, 0)
 Title.Position = UDim2.new(0, 12, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "📍 Multi Save & TP"
+Title.RichText = true
+Title.Text = "😜 <font color='#FF2222'>mz hub</font>"
 Title.TextColor3 = Color3.fromRGB(235, 235, 245)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 14
+Title.TextSize = 15
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = TitleBar
 
@@ -200,7 +201,6 @@ local function getHRP()
 end
 
 local function refreshList()
-    -- Limpa lista atual
     for _, child in ipairs(ListFrame:GetChildren()) do
         if child:IsA("Frame") then
             child:Destroy()
@@ -219,7 +219,6 @@ local function refreshList()
         itemCorner.CornerRadius = UDim.new(0, 7)
         itemCorner.Parent = item
 
-        -- Nome / botão de seleção
         local selectBtn = Instance.new("TextButton")
         selectBtn.Size = UDim2.new(1, -40, 1, 0)
         selectBtn.Position = UDim2.new(0, 0, 0, 0)
@@ -235,7 +234,6 @@ local function refreshList()
         textPad.PaddingLeft = UDim.new(0, 10)
         textPad.Parent = selectBtn
 
-        -- Botão X (apagar)
         local delBtn = Instance.new("TextButton")
         delBtn.Size = UDim2.new(0, 30, 0, 28)
         delBtn.Position = UDim2.new(1, -34, 0.5, -14)
@@ -250,7 +248,6 @@ local function refreshList()
         delCorner.CornerRadius = UDim.new(0, 6)
         delCorner.Parent = delBtn
 
-        -- Selecionar
         selectBtn.MouseButton1Click:Connect(function()
             selectedIndex = i
             refreshList()
@@ -258,7 +255,6 @@ local function refreshList()
             Status.TextColor3 = Color3.fromRGB(120, 220, 150)
         end)
 
-        -- Apagar
         delBtn.MouseButton1Click:Connect(function()
             table.remove(savedLocations, i)
             if selectedIndex == i then
@@ -273,7 +269,6 @@ local function refreshList()
     end
 end
 
--- Minimizar
 MinimizeBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     if minimized then
@@ -287,7 +282,6 @@ MinimizeBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Salvar nova
 SaveBtn.MouseButton1Click:Connect(function()
     if #savedLocations >= maxSlots then
         Status.Text = "Máximo de " .. maxSlots .. " localizações!"
@@ -320,7 +314,6 @@ SaveBtn.MouseButton1Click:Connect(function()
     end)
 end)
 
--- Teleportar
 TPBtn.MouseButton1Click:Connect(function()
     if not selectedIndex or not savedLocations[selectedIndex] then
         Status.Text = "Selecione uma localização primeiro!"
@@ -347,4 +340,4 @@ TPBtn.MouseButton1Click:Connect(function()
 end)
 
 refreshList()
-print("[Multi Save & TP] Carregado com sucesso!")
+print("[mz hub] Carregado com sucesso!")
