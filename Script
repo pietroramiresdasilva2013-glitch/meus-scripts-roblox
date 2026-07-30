@@ -1,101 +1,142 @@
--- Carrega a Biblioteca do Painel (Orion Library)
+-- Garante compatibilidade e limpa instâncias antigas se re-executado
+if getgenv().MZ_ESP_Loaded then 
+    getgenv().MZ_ESP_Loaded:Disconnect()
+end
+
+-- Carrega a Orion Library
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
 
--- Cria a Janela Principal com o Título Colorido em HTML/RichText
+-- Título Colorido MZ HUB
 local Window = OrionLib:MakeWindow({
     Name = "<font color='#FF0055'>M</font><font color='#FF7700'>Z</font> <font color='#00FFDD'>H</font><font color='#0088FF'>U</font><font color='#AA00FF'>B</font>", 
     HidePremium = false, 
     SaveConfig = false, 
-    ConfigFolder = "MZHubConfig"
+    ConfigFolder = "MZHubMobile"
 })
 
--- Aba do ESP
 local TabESP = Window:MakeTab({
-    Name = "ESP / Visuals",
+    Name = "ESP Universal",
     Icon = "rbxassetid://4483345998",
     PremiumOnly = false
 })
 
--- Variáveis de Controle
-local ESP_Enabled = false
-local ESP_Boxes = {}
-local ESP_Names = {}
+-- Configurações Globais
+getgenv().ESP_Enabled = false
+getgenv().ESP_TeamCheck = false
 
--- Função para Criar e Atualizar os ESPs
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
 
-local function createESP(player)
-    if player == LocalPlayer then return end
+-- Pasta no Gui do Jogador para evitar lags de renderização
+local CoreGui = game:GetService("CoreGui")
+local ScreenGui = CoreGui:FindFirstChild("MZ_ESP_Container")
 
-    -- Criar Highlight (Box Colorido em volta do personagem)
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "MZ_ESP_" .. player.Name
-    highlight.FillColor = Color3.fromRGB(255, 0, 100)
-    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-    highlight.FillTransparency = 0.5
-    highlight.OutlineTransparency = 0
-    highlight.Enabled = ESP_Enabled
+if ScreenGui then ScreenGui:Destroy() end
+ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "MZ_ESP_Container"
+ScreenGui.Parent = CoreGui
 
-    -- Criar Nome Flutuante (BillboardGui)
-    local billboard = Instance.new("BillboardGui")
-    billboard.Name = "MZ_Name_" .. player.Name
-    billboard.AlwaysOnTop = true
-    billboard.Size = UDim2.new(0, 200, 0, 50)
-    billboard.StudsOffset = Vector3.new(0, 3, 0)
-    billboard.Enabled = ESP_Enabled
+-- Criador de ESP individual
+local ESP_Objects = {}
 
-    local label = Instance.new("TextLabel")
-    label.Parent = billboard
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.BackgroundTransparency = 1
-    label.Text = player.DisplayName .. " (@" .. player.Name .. ")"
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.TextStrokeTransparency = 0
-    label.TextSize = 14
-    label.Font = Enum.Font.SourceSansBold
+local function removeESP(player)
+    if ESP_Objects[player] then
+        if ESP_Objects[player].Box then ESP_Objects[player].Box:Destroy() end
+        if ESP_Objects[player].Name then ESP_Objects[player].Name:Destroy() end
+        ESP_Objects[player] = nil
+    end
+end
 
-    -- Aplicar quando o personagem carregar
-    local function applyToCharacter(char)
-        if char then
-            highlight.Parent = char
-            
-            local head = char:WaitForChild("Head", 5)
-            if head then
-                billboard.Adornee = head
-                billboard.Parent = head
+local function updateESP()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local char = player.Character
+            if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChildOfClass("Humanoid") then
+                local hrp = char.HumanoidRootPart
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                
+                -- Checagem de vida e visibilidade
+                if humanoid.Health > 0 then
+                    local hrpPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+
+                    if onScreen and getgenv().ESP_Enabled then
+                        -- Criar objetos se não existirem
+                        if not ESP_Objects[player] then
+                            local box = Instance.new("Frame")
+                            box.BackgroundTransparency = 1
+                            box.BorderSizePixel = 2
+                            box.BorderColor3 = Color3.fromRGB(255, 0, 85)
+                            box.Parent = ScreenGui
+
+                            local name = Instance.new("TextLabel")
+                            name.BackgroundTransparency = 1
+                            name.TextColor3 = Color3.fromRGB(255, 255, 255)
+                            name.TextStrokeTransparency = 0
+                            name.TextSize = 13
+                            name.Font = Enum.Font.SourceSansBold
+                            name.Parent = ScreenGui
+
+                            ESP_Objects[player] = {Box = box, Name = name}
+                        end
+
+                        -- Cálculo de tamanho adaptativo da Box universal
+                        local headPos = Camera:WorldToViewportPoint(hrp.Position + Vector3.new(0, 3, 0))
+                        local legPos = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3.5, 0))
+                        local height = math.abs(headPos.Y - legPos.Y)
+                        local width = height / 1.5
+
+                        -- Atualiza Box
+                        local box = ESP_Objects[player].Box
+                        box.Size = UDim2.new(0, width, 0, height)
+                        box.Position = UDim2.new(0, hrpPos.X - (width / 2), 0, hrpPos.Y - (height / 2))
+                        box.Visible = true
+
+                        -- Atualiza Nome e Distância
+                        local name = ESP_Objects[player].Name
+                        local distance = math.floor((hrp.Position - Camera.CFrame.Position).Magnitude)
+                        name.Text = player.DisplayName .. " [" .. distance .. "m]"
+                        name.Position = UDim2.new(0, hrpPos.X - 100, 0, hrpPos.Y - (height / 2) - 18)
+                        name.Size = UDim2.new(0, 200, 0, 15)
+                        name.Visible = true
+                    else
+                        if ESP_Objects[player] then
+                            ESP_Objects[player].Box.Visible = false
+                            ESP_Objects[player].Name.Visible = false
+                        end
+                    end
+                else
+                    removeESP(player)
+                end
+            else
+                removeESP(player)
             end
         end
     end
-
-    if player.Character then applyToCharacter(player.Character) end
-    player.CharacterAdded:Connect(applyToCharacter)
-
-    ESP_Boxes[player] = highlight
-    ESP_Names[player] = billboard
 end
 
--- Monitorar Entrada de Novos Jogadores
-for _, player in pairs(Players:GetPlayers()) do
-    createESP(player)
-end
-Players.PlayerAdded:Connect(createESP)
+-- Limpa ESP de quem sair do jogo
+Players.PlayerRemoving:Connect(removeESP)
 
--- Alternar o ESP ON/OFF
+-- Loop principal otimizado para Mobile
+getgenv().MZ_ESP_Loaded = game:GetService("RunService").RenderStepped:Connect(function()
+    if getgenv().ESP_Enabled then
+        updateESP()
+    else
+        for _, obj in pairs(ESP_Objects) do
+            if obj.Box then obj.Box.Visible = false end
+            if obj.Name then obj.Name.Visible = false end
+        end
+    end
+end)
+
+-- Botão de Toggle no Menu
 TabESP:AddToggle({
-    Name = "Ativar ESP (Boxes & Nomes)",
+    Name = "Ativar ESP (Universal)",
     Default = false,
     Callback = function(Value)
-        ESP_Enabled = Value
-        for player, highlight in pairs(ESP_Boxes) do
-            if highlight then highlight.Enabled = Value end
-        end
-        for player, billboard in pairs(ESP_Names) do
-            if billboard then billboard.Enabled = Value end
-        end
+        getgenv().ESP_Enabled = Value
     end    
 })
 
--- Inicializa o Painel
 OrionLib:Init()
