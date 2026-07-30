@@ -1,5 +1,5 @@
--- [[ mz hub - Multi Save & TP ]]
--- Lista + Scroll + Selecionar (verde) + X para apagar + TP
+-- [[ mz hub - Multi Save & TP + Auto Pegar ]]
+-- Lista + Scroll + Selecionar + X + TP + Auto Pegar (Mobile)
 
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
@@ -7,7 +7,6 @@ local UIS = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 
--- Limpa GUI antiga
 pcall(function()
     if CoreGui:FindFirstChild("MultiSaveTP_GUI") then
         CoreGui.MultiSaveTP_GUI:Destroy()
@@ -18,6 +17,7 @@ local savedLocations = {}
 local selectedIndex = nil
 local minimized = false
 local maxSlots = 8
+local autoPegar = false
 
 -- ==================== GUI ====================
 local ScreenGui = Instance.new("ScreenGui")
@@ -29,8 +29,8 @@ ScreenGui.Parent = CoreGui
 
 local Main = Instance.new("Frame")
 Main.Name = "Main"
-Main.Size = UDim2.new(0, 230, 0, 320)
-Main.Position = UDim2.new(0.04, 0, 0.25, 0)
+Main.Size = UDim2.new(0, 230, 0, 365)
+Main.Position = UDim2.new(0.04, 0, 0.22, 0)
 Main.BackgroundColor3 = Color3.fromRGB(20, 20, 26)
 Main.BorderSizePixel = 0
 Main.Active = true
@@ -102,7 +102,7 @@ Content.Parent = Main
 -- Botão Salvar Nova
 local SaveBtn = Instance.new("TextButton")
 SaveBtn.Size = UDim2.new(1, -20, 0, 34)
-SaveBtn.Position = UDim2.new(0, 10, 0, 10)
+SaveBtn.Position = UDim2.new(0, 10, 0, 8)
 SaveBtn.BackgroundColor3 = Color3.fromRGB(40, 115, 195)
 SaveBtn.Text = "💾  Salvar Nova Localização"
 SaveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -114,11 +114,11 @@ local SaveCorner = Instance.new("UICorner")
 SaveCorner.CornerRadius = UDim.new(0, 8)
 SaveCorner.Parent = SaveBtn
 
--- Lista (ScrollingFrame)
+-- Lista
 local ListFrame = Instance.new("ScrollingFrame")
 ListFrame.Name = "List"
-ListFrame.Size = UDim2.new(1, -20, 0, 160)
-ListFrame.Position = UDim2.new(0, 10, 0, 52)
+ListFrame.Size = UDim2.new(1, -20, 0, 140)
+ListFrame.Position = UDim2.new(0, 10, 0, 50)
 ListFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
 ListFrame.BorderSizePixel = 0
 ListFrame.ScrollBarThickness = 4
@@ -145,8 +145,8 @@ ListPadding.Parent = ListFrame
 
 -- Botão TP
 local TPBtn = Instance.new("TextButton")
-TPBtn.Size = UDim2.new(1, -20, 0, 38)
-TPBtn.Position = UDim2.new(0, 10, 0, 222)
+TPBtn.Size = UDim2.new(1, -20, 0, 36)
+TPBtn.Position = UDim2.new(0, 10, 0, 200)
 TPBtn.BackgroundColor3 = Color3.fromRGB(45, 150, 85)
 TPBtn.Text = "🚀  Teleportar (TP)"
 TPBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -158,10 +158,25 @@ local TPCorner = Instance.new("UICorner")
 TPCorner.CornerRadius = UDim.new(0, 8)
 TPCorner.Parent = TPBtn
 
+-- Botão Auto Pegar
+local AutoBtn = Instance.new("TextButton")
+AutoBtn.Size = UDim2.new(1, -20, 0, 36)
+AutoBtn.Position = UDim2.new(0, 10, 0, 245)
+AutoBtn.BackgroundColor3 = Color3.fromRGB(80, 50, 50)
+AutoBtn.Text = "🖐  Auto Pegar: OFF"
+AutoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+AutoBtn.Font = Enum.Font.GothamSemibold
+AutoBtn.TextSize = 13
+AutoBtn.Parent = Content
+
+local AutoCorner = Instance.new("UICorner")
+AutoCorner.CornerRadius = UDim.new(0, 8)
+AutoCorner.Parent = AutoBtn
+
 -- Status
 local Status = Instance.new("TextLabel")
 Status.Size = UDim2.new(1, -20, 0, 20)
-Status.Position = UDim2.new(0, 10, 0, 268)
+Status.Position = UDim2.new(0, 10, 0, 290)
 Status.BackgroundTransparency = 1
 Status.Text = "Nenhuma localização selecionada"
 Status.TextColor3 = Color3.fromRGB(140, 140, 160)
@@ -209,7 +224,7 @@ local function refreshList()
 
     for i, data in ipairs(savedLocations) do
         local item = Instance.new("Frame")
-        item.Size = UDim2.new(1, -4, 0, 36)
+        item.Size = UDim2.new(1, -4, 0, 34)
         item.BackgroundColor3 = (selectedIndex == i) and Color3.fromRGB(35, 90, 55) or Color3.fromRGB(40, 40, 52)
         item.BorderSizePixel = 0
         item.LayoutOrder = i
@@ -221,7 +236,6 @@ local function refreshList()
 
         local selectBtn = Instance.new("TextButton")
         selectBtn.Size = UDim2.new(1, -40, 1, 0)
-        selectBtn.Position = UDim2.new(0, 0, 0, 0)
         selectBtn.BackgroundTransparency = 1
         selectBtn.Text = (selectedIndex == i and "🟢  " or "⚪  ") .. data.name
         selectBtn.TextColor3 = (selectedIndex == i) and Color3.fromRGB(160, 255, 180) or Color3.fromRGB(210, 210, 225)
@@ -235,8 +249,8 @@ local function refreshList()
         textPad.Parent = selectBtn
 
         local delBtn = Instance.new("TextButton")
-        delBtn.Size = UDim2.new(0, 30, 0, 28)
-        delBtn.Position = UDim2.new(1, -34, 0.5, -14)
+        delBtn.Size = UDim2.new(0, 30, 0, 26)
+        delBtn.Position = UDim2.new(1, -34, 0.5, -13)
         delBtn.BackgroundColor3 = Color3.fromRGB(170, 45, 45)
         delBtn.Text = "X"
         delBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -269,6 +283,7 @@ local function refreshList()
     end
 end
 
+-- Minimizar
 MinimizeBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     if minimized then
@@ -277,11 +292,12 @@ MinimizeBtn.MouseButton1Click:Connect(function()
         MinimizeBtn.Text = "+"
     else
         Content.Visible = true
-        Main.Size = UDim2.new(0, 230, 0, 320)
+        Main.Size = UDim2.new(0, 230, 0, 365)
         MinimizeBtn.Text = "–"
     end
 end)
 
+-- Salvar
 SaveBtn.MouseButton1Click:Connect(function()
     if #savedLocations >= maxSlots then
         Status.Text = "Máximo de " .. maxSlots .. " localizações!"
@@ -314,6 +330,7 @@ SaveBtn.MouseButton1Click:Connect(function()
     end)
 end)
 
+-- TP
 TPBtn.MouseButton1Click:Connect(function()
     if not selectedIndex or not savedLocations[selectedIndex] then
         Status.Text = "Selecione uma localização primeiro!"
@@ -339,5 +356,39 @@ TPBtn.MouseButton1Click:Connect(function()
     end)
 end)
 
+-- Auto Pegar (liga/desliga)
+AutoBtn.MouseButton1Click:Connect(function()
+    autoPegar = not autoPegar
+    if autoPegar then
+        AutoBtn.Text = "🖐  Auto Pegar: ON"
+        AutoBtn.BackgroundColor3 = Color3.fromRGB(40, 130, 70)
+        Status.Text = "Auto Pegar ativado"
+        Status.TextColor3 = Color3.fromRGB(120, 220, 150)
+    else
+        AutoBtn.Text = "🖐  Auto Pegar: OFF"
+        AutoBtn.BackgroundColor3 = Color3.fromRGB(80, 50, 50)
+        Status.Text = "Auto Pegar desativado"
+        Status.TextColor3 = Color3.fromRGB(200, 140, 140)
+    end
+end)
+
+-- Loop do Auto Pegar
+task.spawn(function()
+    while true do
+        if autoPegar then
+            pcall(function()
+                for _, prompt in pairs(workspace:GetDescendants()) do
+                    if prompt:IsA("ProximityPrompt") and prompt.Enabled then
+                        if fireproximityprompt then
+                            fireproximityprompt(prompt)
+                        end
+                    end
+                end
+            end)
+        end
+        task.wait(0.15)
+    end
+end)
+
 refreshList()
-print("[mz hub] Carregado com sucesso!")
+print("[mz hub] Carregado! Auto Pegar disponível")
