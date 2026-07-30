@@ -1,91 +1,484 @@
---// ESP PRO Mobile
+-- [[ mz hub - Multi Save & TP + Auto Pegar + Vender ]]
+-- Lista + TP + Auto Pegar + Sistema de Venda (dropdown)
+
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
+local UIS = game:GetService("UserInputService")
 
+local player = Players.LocalPlayer
+
+pcall(function()
+    if CoreGui:FindFirstChild("MultiSaveTP_GUI") then
+        CoreGui.MultiSaveTP_GUI:Destroy()
+    end
+end)
+
+local savedLocations = {}
+local selectedIndex = nil
+local minimized = false
+local maxSlots = 8
+local autoPegar = false
+local sellDropdownOpen = false
+local selectedSellType = nil -- "equipado" ou "inventario"
+
+-- ==================== GUI ====================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ESP_PRO"
+ScreenGui.Name = "MultiSaveTP_GUI"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.Parent = CoreGui
 
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0,220,0,150)
-Frame.Position = UDim2.new(0,20,0.3,0)
-Frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-Frame.BorderSizePixel = 0
-Frame.Active = true
-Frame.Draggable = true
-Frame.Parent = ScreenGui
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.Size = UDim2.new(0, 230, 0, 420)
+Main.Position = UDim2.new(0.04, 0, 0.18, 0)
+Main.BackgroundColor3 = Color3.fromRGB(20, 20, 26)
+Main.BorderSizePixel = 0
+Main.Active = true
+Main.Parent = ScreenGui
 
-local Corner = Instance.new("UICorner",Frame)
-Corner.CornerRadius = UDim.new(0,10)
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.Parent = Main
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(65, 65, 85)
+UIStroke.Thickness = 1.5
+UIStroke.Parent = Main
+
+-- Barra de título
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 34)
+TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = Main
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 12)
+TitleCorner.Parent = TitleBar
+
+local TitleFix = Instance.new("Frame")
+TitleFix.Size = UDim2.new(1, 0, 0, 14)
+TitleFix.Position = UDim2.new(0, 0, 1, -14)
+TitleFix.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+TitleFix.BorderSizePixel = 0
+TitleFix.Parent = TitleBar
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1,0,0,35)
+Title.Size = UDim2.new(1, -45, 1, 0)
+Title.Position = UDim2.new(0, 12, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "ESP PRO"
+Title.RichText = true
+Title.Text = "😜 <font color='#FF2222'>mz hub</font>"
+Title.TextColor3 = Color3.fromRGB(235, 235, 245)
 Title.Font = Enum.Font.GothamBold
-Title.TextColor3 = Color3.new(1,1,1)
-Title.TextSize = 22
-Title.Parent = Frame
+Title.TextSize = 15
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TitleBar
 
-local Toggle = Instance.new("TextButton")
-Toggle.Size = UDim2.new(0.85,0,0,40)
-Toggle.Position = UDim2.new(0.075,0,0.4,0)
-Toggle.Text = "ESP: OFF"
-Toggle.Font = Enum.Font.GothamBold
-Toggle.TextSize = 18
-Toggle.BackgroundColor3 = Color3.fromRGB(40,40,40)
-Toggle.TextColor3 = Color3.new(1,1,1)
-Toggle.Parent = Frame
-Instance.new("UICorner",Toggle)
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Size = UDim2.new(0, 28, 0, 28)
+MinimizeBtn.Position = UDim2.new(1, -32, 0, 3)
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+MinimizeBtn.Text = "–"
+MinimizeBtn.TextColor3 = Color3.fromRGB(230, 230, 240)
+MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.TextSize = 16
+MinimizeBtn.Parent = TitleBar
 
-local Close = Instance.new("TextButton")
-Close.Size = UDim2.new(0,30,0,30)
-Close.Position = UDim2.new(1,-35,0,5)
-Close.Text = "X"
-Close.BackgroundColor3 = Color3.fromRGB(180,50,50)
-Close.TextColor3 = Color3.new(1,1,1)
-Close.Parent = Frame
-Instance.new("UICorner",Close)
+local MinCorner = Instance.new("UICorner")
+MinCorner.CornerRadius = UDim.new(0, 6)
+MinCorner.Parent = MinimizeBtn
 
-local Enabled = false
+-- Conteúdo
+local Content = Instance.new("Frame")
+Content.Name = "Content"
+Content.Size = UDim2.new(1, 0, 1, -34)
+Content.Position = UDim2.new(0, 0, 0, 34)
+Content.BackgroundTransparency = 1
+Content.Parent = Main
 
-local function UpdateESP()
-	for _,plr in ipairs(Players:GetPlayers()) do
-		if plr ~= LocalPlayer and plr.Character then
-			local h = plr.Character:FindFirstChild("ESP_Highlight")
+-- Salvar
+local SaveBtn = Instance.new("TextButton")
+SaveBtn.Size = UDim2.new(1, -20, 0, 32)
+SaveBtn.Position = UDim2.new(0, 10, 0, 6)
+SaveBtn.BackgroundColor3 = Color3.fromRGB(40, 115, 195)
+SaveBtn.Text = "💾  Salvar Nova Localização"
+SaveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SaveBtn.Font = Enum.Font.GothamSemibold
+SaveBtn.TextSize = 12
+SaveBtn.Parent = Content
 
-			if Enabled then
-				if not h then
-					h = Instance.new("Highlight")
-					h.Name = "ESP_Highlight"
-					h.FillColor = Color3.fromRGB(255,0,0)
-					h.OutlineColor = Color3.fromRGB(255,255,255)
-					h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-					h.Parent = plr.Character
-				end
-			else
-				if h then
-					h:Destroy()
-				end
-			end
-		end
-	end
+Instance.new("UICorner", SaveBtn).CornerRadius = UDim.new(0, 8)
+
+-- Lista
+local ListFrame = Instance.new("ScrollingFrame")
+ListFrame.Name = "List"
+ListFrame.Size = UDim2.new(1, -20, 0, 110)
+ListFrame.Position = UDim2.new(0, 10, 0, 44)
+ListFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
+ListFrame.BorderSizePixel = 0
+ListFrame.ScrollBarThickness = 4
+ListFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 130)
+ListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ListFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+ListFrame.Parent = Content
+
+Instance.new("UICorner", ListFrame).CornerRadius = UDim.new(0, 8)
+
+local ListLayout = Instance.new("UIListLayout")
+ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ListLayout.Padding = UDim.new(0, 5)
+ListLayout.Parent = ListFrame
+
+local ListPadding = Instance.new("UIPadding")
+ListPadding.PaddingTop = UDim.new(0, 5)
+ListPadding.PaddingBottom = UDim.new(0, 5)
+ListPadding.PaddingLeft = UDim.new(0, 5)
+ListPadding.PaddingRight = UDim.new(0, 5)
+ListPadding.Parent = ListFrame
+
+-- TP
+local TPBtn = Instance.new("TextButton")
+TPBtn.Size = UDim2.new(1, -20, 0, 32)
+TPBtn.Position = UDim2.new(0, 10, 0, 162)
+TPBtn.BackgroundColor3 = Color3.fromRGB(45, 150, 85)
+TPBtn.Text = "🚀  Teleportar (TP)"
+TPBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TPBtn.Font = Enum.Font.GothamSemibold
+TPBtn.TextSize = 13
+TPBtn.Parent = Content
+
+Instance.new("UICorner", TPBtn).CornerRadius = UDim.new(0, 8)
+
+-- Auto Pegar
+local AutoBtn = Instance.new("TextButton")
+AutoBtn.Size = UDim2.new(1, -20, 0, 32)
+AutoBtn.Position = UDim2.new(0, 10, 0, 200)
+AutoBtn.BackgroundColor3 = Color3.fromRGB(80, 50, 50)
+AutoBtn.Text = "🖐  Auto Pegar: OFF"
+AutoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+AutoBtn.Font = Enum.Font.GothamSemibold
+AutoBtn.TextSize = 12
+AutoBtn.Parent = Content
+
+Instance.new("UICorner", AutoBtn).CornerRadius = UDim.new(0, 8)
+
+-- ========== SISTEMA DE VENDER ==========
+local SellDropBtn = Instance.new("TextButton")
+SellDropBtn.Size = UDim2.new(1, -20, 0, 32)
+SellDropBtn.Position = UDim2.new(0, 10, 0, 238)
+SellDropBtn.BackgroundColor3 = Color3.fromRGB(160, 90, 30)
+SellDropBtn.Text = "💰  Vender  ▼"
+SellDropBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SellDropBtn.Font = Enum.Font.GothamSemibold
+SellDropBtn.TextSize = 13
+SellDropBtn.Parent = Content
+
+Instance.new("UICorner", SellDropBtn).CornerRadius = UDim.new(0, 8)
+
+-- Dropdown (escondido)
+local DropFrame = Instance.new("Frame")
+DropFrame.Name = "DropFrame"
+DropFrame.Size = UDim2.new(1, -20, 0, 70)
+DropFrame.Position = UDim2.new(0, 10, 0, 274)
+DropFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+DropFrame.BorderSizePixel = 0
+DropFrame.Visible = false
+DropFrame.Parent = Content
+
+Instance.new("UICorner", DropFrame).CornerRadius = UDim.new(0, 8)
+
+local Opt1 = Instance.new("TextButton")
+Opt1.Size = UDim2.new(1, -10, 0, 28)
+Opt1.Position = UDim2.new(0, 5, 0, 5)
+Opt1.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+Opt1.Text = "1. Vender Equipado"
+Opt1.TextColor3 = Color3.fromRGB(230, 230, 240)
+Opt1.Font = Enum.Font.Gotham
+Opt1.TextSize = 12
+Opt1.Parent = DropFrame
+
+Instance.new("UICorner", Opt1).CornerRadius = UDim.new(0, 6)
+
+local Opt2 = Instance.new("TextButton")
+Opt2.Size = UDim2.new(1, -10, 0, 28)
+Opt2.Position = UDim2.new(0, 5, 0, 37)
+Opt2.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+Opt2.Text = "2. Vender Inventário"
+Opt2.TextColor3 = Color3.fromRGB(230, 230, 240)
+Opt2.Font = Enum.Font.Gotham
+Opt2.TextSize = 12
+Opt2.Parent = DropFrame
+
+Instance.new("UICorner", Opt2).CornerRadius = UDim.new(0, 6)
+
+-- Botão Vender (aparece depois de escolher)
+local ConfirmSellBtn = Instance.new("TextButton")
+ConfirmSellBtn.Size = UDim2.new(1, -20, 0, 32)
+ConfirmSellBtn.Position = UDim2.new(0, 10, 0, 274)
+ConfirmSellBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+ConfirmSellBtn.Text = "💰  VENDER AGORA"
+ConfirmSellBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ConfirmSellBtn.Font = Enum.Font.GothamBold
+ConfirmSellBtn.TextSize = 13
+ConfirmSellBtn.Visible = false
+ConfirmSellBtn.Parent = Content
+
+Instance.new("UICorner", ConfirmSellBtn).CornerRadius = UDim.new(0, 8)
+
+-- Status
+local Status = Instance.new("TextLabel")
+Status.Size = UDim2.new(1, -20, 0, 18)
+Status.Position = UDim2.new(0, 10, 0, 360)
+Status.BackgroundTransparency = 1
+Status.Text = "Nenhuma localização selecionada"
+Status.TextColor3 = Color3.fromRGB(140, 140, 160)
+Status.Font = Enum.Font.Gotham
+Status.TextSize = 11
+Status.Parent = Content
+
+-- ==================== ARRASTAR ====================
+local dragging = false
+local dragStart, startPos
+
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = Main.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- ==================== FUNÇÕES ====================
+local function getHRP()
+    local char = player.Character
+    if not char then return nil end
+    return char:FindFirstChild("HumanoidRootPart")
 end
 
-Toggle.MouseButton1Click:Connect(function()
-	Enabled = not Enabled
-	Toggle.Text = Enabled and "ESP: ON" or "ESP: OFF"
-	UpdateESP()
+local function refreshList()
+    for _, child in ipairs(ListFrame:GetChildren()) do
+        if child:IsA("Frame") then child:Destroy() end
+    end
+
+    for i, data in ipairs(savedLocations) do
+        local item = Instance.new("Frame")
+        item.Size = UDim2.new(1, -4, 0, 30)
+        item.BackgroundColor3 = (selectedIndex == i) and Color3.fromRGB(35, 90, 55) or Color3.fromRGB(40, 40, 52)
+        item.BorderSizePixel = 0
+        item.LayoutOrder = i
+        item.Parent = ListFrame
+
+        Instance.new("UICorner", item).CornerRadius = UDim.new(0, 6)
+
+        local selectBtn = Instance.new("TextButton")
+        selectBtn.Size = UDim2.new(1, -36, 1, 0)
+        selectBtn.BackgroundTransparency = 1
+        selectBtn.Text = (selectedIndex == i and "🟢 " or "⚪ ") .. data.name
+        selectBtn.TextColor3 = (selectedIndex == i) and Color3.fromRGB(160, 255, 180) or Color3.fromRGB(210, 210, 225)
+        selectBtn.Font = Enum.Font.Gotham
+        selectBtn.TextSize = 12
+        selectBtn.TextXAlignment = Enum.TextXAlignment.Left
+        selectBtn.Parent = item
+
+        local textPad = Instance.new("UIPadding")
+        textPad.PaddingLeft = UDim.new(0, 8)
+        textPad.Parent = selectBtn
+
+        local delBtn = Instance.new("TextButton")
+        delBtn.Size = UDim2.new(0, 28, 0, 24)
+        delBtn.Position = UDim2.new(1, -32, 0.5, -12)
+        delBtn.BackgroundColor3 = Color3.fromRGB(170, 45, 45)
+        delBtn.Text = "X"
+        delBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        delBtn.Font = Enum.Font.GothamBold
+        delBtn.TextSize = 12
+        delBtn.Parent = item
+
+        Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 5)
+
+        selectBtn.MouseButton1Click:Connect(function()
+            selectedIndex = i
+            refreshList()
+            Status.Text = "Selecionado: " .. data.name
+            Status.TextColor3 = Color3.fromRGB(120, 220, 150)
+        end)
+
+        delBtn.MouseButton1Click:Connect(function()
+            table.remove(savedLocations, i)
+            if selectedIndex == i then
+                selectedIndex = nil
+                Status.Text = "Nenhuma localização selecionada"
+                Status.TextColor3 = Color3.fromRGB(140, 140, 160)
+            elseif selectedIndex and selectedIndex > i then
+                selectedIndex = selectedIndex - 1
+            end
+            refreshList()
+        end)
+    end
+end
+
+-- Minimizar
+MinimizeBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        Content.Visible = false
+        Main.Size = UDim2.new(0, 230, 0, 34)
+        MinimizeBtn.Text = "+"
+    else
+        Content.Visible = true
+        Main.Size = UDim2.new(0, 230, 0, 420)
+        MinimizeBtn.Text = "–"
+    end
 end)
 
-Players.PlayerAdded:Connect(function(plr)
-	plr.CharacterAdded:Connect(function()
-		task.wait(1)
-		UpdateESP()
-	end)
+-- Salvar
+SaveBtn.MouseButton1Click:Connect(function()
+    if #savedLocations >= maxSlots then
+        Status.Text = "Máximo de localizações!"
+        Status.TextColor3 = Color3.fromRGB(255, 120, 120)
+        return
+    end
+    local hrp = getHRP()
+    if not hrp then return end
+
+    local num = #savedLocations + 1
+    table.insert(savedLocations, {name = "Local " .. num, cframe = hrp.CFrame})
+    selectedIndex = #savedLocations
+    refreshList()
+    Status.Text = "Salvo: Local " .. num
+    Status.TextColor3 = Color3.fromRGB(120, 220, 150)
 end)
 
-Close.MouseButton1Click:Connect(function()
-	ScreenGui:Destroy()
+-- TP
+TPBtn.MouseButton1Click:Connect(function()
+    if not selectedIndex or not savedLocations[selectedIndex] then
+        Status.Text = "Selecione uma localização!"
+        Status.TextColor3 = Color3.fromRGB(255, 120, 120)
+        return
+    end
+    local hrp = getHRP()
+    if hrp then
+        hrp.CFrame = savedLocations[selectedIndex].cframe
+        Status.Text = "Teleportado!"
+        Status.TextColor3 = Color3.fromRGB(100, 180, 255)
+    end
 end)
+
+-- Auto Pegar
+AutoBtn.MouseButton1Click:Connect(function()
+    autoPegar = not autoPegar
+    if autoPegar then
+        AutoBtn.Text = "🖐  Auto Pegar: ON"
+        AutoBtn.BackgroundColor3 = Color3.fromRGB(40, 130, 70)
+    else
+        AutoBtn.Text = "🖐  Auto Pegar: OFF"
+        AutoBtn.BackgroundColor3 = Color3.fromRGB(80, 50, 50)
+    end
+end)
+
+-- Dropdown Vender
+SellDropBtn.MouseButton1Click:Connect(function()
+    sellDropdownOpen = not sellDropdownOpen
+    DropFrame.Visible = sellDropdownOpen
+    ConfirmSellBtn.Visible = false
+    selectedSellType = nil
+
+    if sellDropdownOpen then
+        SellDropBtn.Text = "💰  Vender  ▲"
+        Main.Size = UDim2.new(0, 230, 0, 460)
+    else
+        SellDropBtn.Text = "💰  Vender  ▼"
+        Main.Size = UDim2.new(0, 230, 0, 420)
+    end
+end)
+
+Opt1.MouseButton1Click:Connect(function()
+    selectedSellType = "equipado"
+    DropFrame.Visible = false
+    sellDropdownOpen = false
+    SellDropBtn.Text = "💰  Vender Equipado  ▼"
+    ConfirmSellBtn.Visible = true
+    ConfirmSellBtn.Position = UDim2.new(0, 10, 0, 274)
+    Main.Size = UDim2.new(0, 230, 0, 420)
+    Status.Text = "Selecionado: Vender Equipado"
+    Status.TextColor3 = Color3.fromRGB(255, 180, 80)
+end)
+
+Opt2.MouseButton1Click:Connect(function()
+    selectedSellType = "inventario"
+    DropFrame.Visible = false
+    sellDropdownOpen = false
+    SellDropBtn.Text = "💰  Vender Inventário  ▼"
+    ConfirmSellBtn.Visible = true
+    ConfirmSellBtn.Position = UDim2.new(0, 10, 0, 274)
+    Main.Size = UDim2.new(0, 230, 0, 420)
+    Status.Text = "Selecionado: Vender Inventário"
+    Status.TextColor3 = Color3.fromRGB(255, 180, 80)
+end)
+
+-- Confirmar Venda
+ConfirmSellBtn.MouseButton1Click:Connect(function()
+    if not selectedSellType then return end
+
+    -- Tenta vender usando ProximityPrompt
+    pcall(function()
+        for _, prompt in pairs(workspace:GetDescendants()) do
+            if prompt:IsA("ProximityPrompt") and prompt.Enabled then
+                local text = (prompt.ActionText or ""):lower()
+                local obj = (prompt.ObjectText or ""):lower()
+                if text:find("vender") or obj:find("vender") or text:find("sell") then
+                    if fireproximityprompt then
+                        fireproximityprompt(prompt)
+                    end
+                end
+            end
+        end
+    end)
+
+    Status.Text = "Vendendo (" .. selectedSellType .. ")..."
+    Status.TextColor3 = Color3.fromRGB(100, 220, 150)
+
+    ConfirmSellBtn.Text = "✅  Vendido!"
+    task.delay(1.2, function()
+        if ConfirmSellBtn then
+            ConfirmSellBtn.Text = "💰  VENDER AGORA"
+        end
+    end)
+end)
+
+-- Loop Auto Pegar
+task.spawn(function()
+    while true do
+        if autoPegar then
+            pcall(function()
+                for _, prompt in pairs(workspace:GetDescendants()) do
+                    if prompt:IsA("ProximityPrompt") and prompt.Enabled then
+                        if fireproximityprompt then
+                            fireproximityprompt(prompt)
+                        end
+                    end
+                end
+            end)
+        end
+        task.wait(0.15)
+    end
+end)
+
+refreshList()
+print("[mz hub] Carregado com sistema de Vender!")
