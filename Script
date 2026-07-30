@@ -1,55 +1,44 @@
--- 爪卂́ 卄ㄩ乃 | R6 Animation Panel | Delta Mobile
--- FE | Arrastável | Minimizar | Scroll
+-- 爪卂́ 卄ㄩ乃 | Aimbot + ESP Completo | Delta Mobile
+-- Cabeça/Pescoço/Torso/Quadril | Linha | Esqueleto | Caixa | Vida | Distância | Cor + Rainbow
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
 
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-
--- Remove se já existir
-if playerGui:FindFirstChild("MaHubAnim") then
-    playerGui.MaHubAnim:Destroy()
+if LocalPlayer.PlayerGui:FindFirstChild("MaHubFull") then
+    LocalPlayer.PlayerGui.MaHubFull:Destroy()
 end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MaHubAnim"
+ScreenGui.Name = "MaHubFull"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.Parent = playerGui
+ScreenGui.Parent = LocalPlayer.PlayerGui
 
--- Frame principal
+-- ====================== MAIN FRAME ======================
 local Main = Instance.new("Frame")
-Main.Name = "Main"
-Main.Size = UDim2.new(0, 280, 0, 380)
-Main.Position = UDim2.new(0.5, -140, 0.5, -190)
+Main.Size = UDim2.new(0, 300, 0, 420)
+Main.Position = UDim2.new(0.5, -150, 0.5, -210)
 Main.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 Main.BorderSizePixel = 0
 Main.Active = true
 Main.Parent = ScreenGui
 
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 10)
-UICorner.Parent = Main
-
-local UIStroke = Instance.new("UIStroke")
-UIStroke.Color = Color3.fromRGB(80, 80, 120)
-UIStroke.Thickness = 1.5
-UIStroke.Parent = Main
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
+local stroke = Instance.new("UIStroke", Main)
+stroke.Color = Color3.fromRGB(80, 80, 120)
+stroke.Thickness = 1.5
 
 -- Title Bar
 local TitleBar = Instance.new("Frame")
-TitleBar.Name = "TitleBar"
 TitleBar.Size = UDim2.new(1, 0, 0, 36)
 TitleBar.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
 TitleBar.BorderSizePixel = 0
 TitleBar.Parent = Main
-
-local TitleCorner = Instance.new("UICorner")
-TitleCorner.CornerRadius = UDim.new(0, 10)
-TitleCorner.Parent = TitleBar
+Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 10)
 
 local TitleFix = Instance.new("Frame")
 TitleFix.Size = UDim2.new(1, 0, 0, 12)
@@ -58,9 +47,7 @@ TitleFix.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
 TitleFix.BorderSizePixel = 0
 TitleFix.Parent = TitleBar
 
--- Título colorido
 local Title = Instance.new("TextLabel")
-Title.Name = "Title"
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
 Title.BackgroundTransparency = 1
@@ -70,7 +57,6 @@ Title.TextSize = 18
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = TitleBar
 
--- Rainbow no título
 task.spawn(function()
     local hue = 0
     while Title and Title.Parent do
@@ -80,193 +66,257 @@ task.spawn(function()
     end
 end)
 
--- Botão Minimizar
 local MinBtn = Instance.new("TextButton")
-MinBtn.Name = "MinBtn"
 MinBtn.Size = UDim2.new(0, 28, 0, 28)
 MinBtn.Position = UDim2.new(1, -62, 0.5, -14)
 MinBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
 MinBtn.Text = "–"
-MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinBtn.TextColor3 = Color3.new(1,1,1)
 MinBtn.Font = Enum.Font.GothamBold
 MinBtn.TextSize = 20
 MinBtn.Parent = TitleBar
+Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 6)
 
-local MinCorner = Instance.new("UICorner")
-MinCorner.CornerRadius = UDim.new(0, 6)
-MinCorner.Parent = MinBtn
-
--- Botão Fechar
 local CloseBtn = Instance.new("TextButton")
-CloseBtn.Name = "CloseBtn"
 CloseBtn.Size = UDim2.new(0, 28, 0, 28)
 CloseBtn.Position = UDim2.new(1, -30, 0.5, -14)
 CloseBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
 CloseBtn.Text = "X"
-CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.TextColor3 = Color3.new(1,1,1)
 CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.TextSize = 14
 CloseBtn.Parent = TitleBar
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
 
-local CloseCorner = Instance.new("UICorner")
-CloseCorner.CornerRadius = UDim.new(0, 6)
-CloseCorner.Parent = CloseBtn
-
--- Container das animações
-local Content = Instance.new("Frame")
-Content.Name = "Content"
+-- Content com Scroll
+local Content = Instance.new("ScrollingFrame")
 Content.Size = UDim2.new(1, -16, 1, -48)
 Content.Position = UDim2.new(0, 8, 0, 42)
 Content.BackgroundTransparency = 1
+Content.BorderSizePixel = 0
+Content.ScrollBarThickness = 4
+Content.ScrollBarImageColor3 = Color3.fromRGB(120, 100, 255)
+Content.CanvasSize = UDim2.new(0, 0, 0, 0)
 Content.Parent = Main
 
-local Scroll = Instance.new("ScrollingFrame")
-Scroll.Name = "Scroll"
-Scroll.Size = UDim2.new(1, 0, 1, 0)
-Scroll.BackgroundTransparency = 1
-Scroll.BorderSizePixel = 0
-Scroll.ScrollBarThickness = 4
-Scroll.ScrollBarImageColor3 = Color3.fromRGB(120, 100, 255)
-Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-Scroll.Parent = Content
+local Layout = Instance.new("UIListLayout")
+Layout.SortOrder = Enum.SortOrder.LayoutOrder
+Layout.Padding = UDim.new(0, 7)
+Layout.Parent = Content
 
-local ListLayout = Instance.new("UIListLayout")
-ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-ListLayout.Padding = UDim.new(0, 6)
-ListLayout.Parent = Scroll
-
-ListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    Scroll.CanvasSize = UDim2.new(0, 0, 0, ListLayout.AbsoluteContentSize.Y + 10)
+Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    Content.CanvasSize = UDim2.new(0, 0, 0, Layout.AbsoluteContentSize.Y + 12)
 end)
 
--- Lista de animações R6 (FE)
-local Animations = {
-    {Name = "Idle", ID = 180435571},
-    {Name = "Walk", ID = 180426354},
-    {Name = "Run", ID = 180426354},
-    {Name = "Jump", ID = 125750702},
-    {Name = "Fall", ID = 180436148},
-    {Name = "Climb", ID = 180436334},
-    {Name = "Sit", ID = 178130996},
-    {Name = "Wave", ID = 128777973},
-    {Name = "Point", ID = 128853357},
-    {Name = "Dance 1", ID = 182435998},
-    {Name = "Dance 2", ID = 182436842},
-    {Name = "Dance 3", ID = 182436935},
-    {Name = "Laugh", ID = 129423030},
-    {Name = "Cheer", ID = 129423030},
-    {Name = "Zombie", ID = 3489171152},
-    {Name = "Superhero", ID = 10921308399},
-    {Name = "Ninja", ID = 656117878},
-    {Name = "Robot", ID = 10921245131},
-    {Name = "Stylish", ID = 10921260813},
-    {Name = "Cartoony", ID = 10921269632},
-    {Name = "Levitation", ID = 10921275309},
-    {Name = "Bubbly", ID = 10921283316},
-    {Name = "Astronaut", ID = 10921278162},
-    {Name = "Vampire", ID = 10921290459},
-    {Name = "Werewolf", ID = 10921293373},
-    {Name = "Pirate", ID = 750781874},
-    {Name = "Toy", ID = 10921306266},
-    {Name = "Old School", ID = 10921230744},
+-- ====================== SETTINGS ======================
+local S = {
+    Aimbot = false,
+    FOV = 140,
+    Smooth = 0.22,
+    TeamCheck = true,
+    WallCheck = false,
+    Target = "Head", -- Head, Neck, Torso, Root
+
+    ESP = true,
+    Box = true,
+    Tracer = true,
+    Skeleton = true,
+    Health = true,
+    Distance = 800,
+    Rainbow = false,
+    Color = Color3.fromRGB(140, 100, 255)
 }
 
-local currentTrack = nil
+local HitParts = {"Head", "Neck", "Torso", "Root"}
+local HitIndex = 1
 
-local function playAnim(id)
-    local char = player.Character
-    if not char then return end
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
-
-    if currentTrack then
-        currentTrack:Stop()
-        currentTrack:Destroy()
-        currentTrack = nil
-    end
-
-    local anim = Instance.new("Animation")
-    anim.AnimationId = "rbxassetid://" .. tostring(id)
-
-    local track = humanoid:LoadAnimation(anim)
-    track.Priority = Enum.AnimationPriority.Action
-    track.Looped = true
-    track:Play()
-    currentTrack = track
+-- ====================== UI HELPERS ======================
+local function AddSection(text)
+    local l = Instance.new("TextLabel")
+    l.Size = UDim2.new(1, 0, 0, 22)
+    l.BackgroundTransparency = 1
+    l.Text = text
+    l.TextColor3 = Color3.fromRGB(180, 160, 255)
+    l.Font = Enum.Font.GothamBold
+    l.TextSize = 13
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.Parent = Content
 end
 
-local function stopAnim()
-    if currentTrack then
-        currentTrack:Stop()
-        currentTrack:Destroy()
-        currentTrack = nil
-    end
-end
+local function AddToggle(name, default, callback)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(1, 0, 0, 34)
+    f.BackgroundColor3 = Color3.fromRGB(30, 30, 42)
+    f.Parent = Content
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 6)
 
--- Botão Parar
-local StopBtn = Instance.new("TextButton")
-StopBtn.Size = UDim2.new(1, 0, 0, 32)
-StopBtn.BackgroundColor3 = Color3.fromRGB(160, 40, 40)
-StopBtn.Text = "PARAR ANIMAÇÃO"
-StopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-StopBtn.Font = Enum.Font.GothamBold
-StopBtn.TextSize = 13
-StopBtn.Parent = Scroll
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -55, 1, 0)
+    label.Position = UDim2.new(0, 10, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = name
+    label.TextColor3 = Color3.fromRGB(230, 230, 255)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 13
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = f
 
-local StopCorner = Instance.new("UICorner")
-StopCorner.CornerRadius = UDim.new(0, 6)
-StopCorner.Parent = StopBtn
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 42, 0, 22)
+    btn.Position = UDim2.new(1, -50, 0.5, -11)
+    btn.BackgroundColor3 = default and Color3.fromRGB(70, 170, 80) or Color3.fromRGB(55, 55, 70)
+    btn.Text = default and "ON" or "OFF"
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 11
+    btn.Parent = f
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
 
-StopBtn.MouseButton1Click:Connect(stopAnim)
-
--- Cria botões das animações
-for i, data in ipairs(Animations) do
-    local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(1, 0, 0, 34)
-    Btn.BackgroundColor3 = Color3.fromRGB(35, 35, 48)
-    Btn.Text = data.Name
-    Btn.TextColor3 = Color3.fromRGB(230, 230, 255)
-    Btn.Font = Enum.Font.Gotham
-    Btn.TextSize = 14
-    Btn.Parent = Scroll
-
-    local BtnCorner = Instance.new("UICorner")
-    BtnCorner.CornerRadius = UDim.new(0, 6)
-    BtnCorner.Parent = Btn
-
-    Btn.MouseButton1Click:Connect(function()
-        playAnim(data.ID)
+    local state = default
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        btn.BackgroundColor3 = state and Color3.fromRGB(70, 170, 80) or Color3.fromRGB(55, 55, 70)
+        btn.Text = state and "ON" or "OFF"
+        callback(state)
     end)
 end
 
--- Minimizar
+local function AddButton(text, callback)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, 0, 0, 32)
+    b.BackgroundColor3 = Color3.fromRGB(45, 40, 70)
+    b.Text = text
+    b.TextColor3 = Color3.new(1,1,1)
+    b.Font = Enum.Font.Gotham
+    b.TextSize = 13
+    b.Parent = Content
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+    b.MouseButton1Click:Connect(callback)
+    return b
+end
+
+-- ====================== UI ======================
+AddSection("— AIMBOT —")
+AddToggle("Aimbot", false, function(v) S.Aimbot = v end)
+AddToggle("Team Check", true, function(v) S.TeamCheck = v end)
+AddToggle("Wall Check", false, function(v) S.WallCheck = v end)
+
+local TargetBtn = AddButton("Mirar: Cabeça", function()
+    HitIndex = HitIndex % #HitParts + 1
+    S.Target = HitParts[HitIndex]
+    local names = {Head = "Cabeça", Neck = "Pescoço", Torso = "Torso", Root = "Quadril"}
+    TargetBtn.Text = "Mirar: " .. (names[S.Target] or S.Target)
+end)
+
+-- FOV
+local FOVFrame = Instance.new("Frame")
+FOVFrame.Size = UDim2.new(1, 0, 0, 48)
+FOVFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 42)
+FOVFrame.Parent = Content
+Instance.new("UICorner", FOVFrame).CornerRadius = UDim.new(0, 6)
+
+local FOVLabel = Instance.new("TextLabel")
+FOVLabel.Size = UDim2.new(1, 0, 0, 18)
+FOVLabel.Position = UDim2.new(0, 0, 0, 3)
+FOVLabel.BackgroundTransparency = 1
+FOVLabel.Text = "FOV: " .. S.FOV
+FOVLabel.TextColor3 = Color3.fromRGB(200, 180, 255)
+FOVLabel.Font = Enum.Font.GothamBold
+FOVLabel.TextSize = 13
+FOVLabel.Parent = FOVFrame
+
+local function makeSmallBtn(txt, x, cb)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0, 55, 0, 20)
+    b.Position = UDim2.new(0.5, x, 1, -24)
+    b.BackgroundColor3 = Color3.fromRGB(55, 45, 90)
+    b.Text = txt
+    b.TextColor3 = Color3.new(1,1,1)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 11
+    b.Parent = FOVFrame
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 5)
+    b.MouseButton1Click:Connect(cb)
+end
+
+makeSmallBtn("– FOV", -65, function()
+    S.FOV = math.max(30, S.FOV - 15)
+    FOVLabel.Text = "FOV: " .. S.FOV
+end)
+makeSmallBtn("+ FOV", 10, function()
+    S.FOV = math.min(400, S.FOV + 15)
+    FOVLabel.Text = "FOV: " .. S.FOV
+end)
+
+AddSection("— ESP —")
+AddToggle("ESP Geral", true, function(v) S.ESP = v end)
+AddToggle("Caixa", true, function(v) S.Box = v end)
+AddToggle("Linha (Tracer)", true, function(v) S.Tracer = v end)
+AddToggle("Esqueleto", true, function(v) S.Skeleton = v end)
+AddToggle("Vida", true, function(v) S.Health = v end)
+AddToggle("Cor Colorida (Rainbow)", false, function(v) S.Rainbow = v end)
+
+-- Distância
+local DistFrame = Instance.new("Frame")
+DistFrame.Size = UDim2.new(1, 0, 0, 48)
+DistFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 42)
+DistFrame.Parent = Content
+Instance.new("UICorner", DistFrame).CornerRadius = UDim.new(0, 6)
+
+local DistLabel = Instance.new("TextLabel")
+DistLabel.Size = UDim2.new(1, 0, 0, 18)
+DistLabel.Position = UDim2.new(0, 0, 0, 3)
+DistLabel.BackgroundTransparency = 1
+DistLabel.Text = "Distância: " .. S.Distance
+DistLabel.TextColor3 = Color3.fromRGB(200, 180, 255)
+DistLabel.Font = Enum.Font.GothamBold
+DistLabel.TextSize = 13
+DistLabel.Parent = DistFrame
+
+makeSmallBtn("– Dist", -65, function()
+    S.Distance = math.max(100, S.Distance - 100)
+    DistLabel.Text = "Distância: " .. S.Distance
+end).Parent = DistFrame
+
+makeSmallBtn("+ Dist", 10, function()
+    S.Distance = math.min(3000, S.Distance + 100)
+    DistLabel.Text = "Distância: " .. S.Distance
+end).Parent = DistFrame
+
+-- Cores rápidas
+AddSection("— COR DO ESP —")
+local colors = {
+    {Color3.fromRGB(140, 100, 255), "Roxo"},
+    {Color3.fromRGB(255, 70, 70), "Vermelho"},
+    {Color3.fromRGB(70, 200, 100), "Verde"},
+    {Color3.fromRGB(70, 160, 255), "Azul"},
+    {Color3.fromRGB(255, 200, 50), "Amarelo"},
+    {Color3.fromRGB(255, 120, 220), "Rosa"},
+}
+
+for _, c in ipairs(colors) do
+    AddButton("Cor: " .. c[2], function()
+        S.Color = c[1]
+        S.Rainbow = false
+    end)
+end
+
+-- ====================== MINIMIZE / CLOSE / DRAG ======================
 local minimized = false
 local originalSize = Main.Size
 
 MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
-    if minimized then
-        Content.Visible = false
-        Main.Size = UDim2.new(0, 280, 0, 36)
-        MinBtn.Text = "+"
-    else
-        Content.Visible = true
-        Main.Size = originalSize
-        MinBtn.Text = "–"
-    end
+    Content.Visible = not minimized
+    Main.Size = minimized and UDim2.new(0, 300, 0, 36) or originalSize
+    MinBtn.Text = minimized and "+" or "–"
 end)
 
--- Fechar
 CloseBtn.MouseButton1Click:Connect(function()
-    stopAnim()
     ScreenGui:Destroy()
 end)
 
--- Arrastar (funciona no mobile e PC)
-local dragging = false
-local dragStart = nil
-local startPos = nil
-
+local dragging, dragStart, startPos
 TitleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
@@ -274,13 +324,11 @@ TitleBar.InputBegan:Connect(function(input)
         startPos = Main.Position
     end
 end)
-
 TitleBar.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = false
     end
 end)
-
 UserInputService.InputChanged:Connect(function(input)
     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
@@ -288,4 +336,179 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
-print("爪卂́ 卄ㄩ乃 carregado | R6 Animation Panel")
+-- ====================== AIMBOT LOGIC ======================
+local function GetTargetPart(char)
+    if S.Target == "Head" then
+        return char:FindFirstChild("Head")
+    elseif S.Target == "Neck" then
+        return char:FindFirstChild("Head") -- aproximação
+    elseif S.Target == "Torso" then
+        return char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+    elseif S.Target == "Root" then
+        return char:FindFirstChild("HumanoidRootPart")
+    end
+    return char:FindFirstChild("Head")
+end
+
+local function Visible(part)
+    if not S.WallCheck then return true end
+    local origin = Camera.CFrame.Position
+    local dir = (part.Position - origin)
+    local params = RaycastParams.new()
+    params.FilterDescendantsInstances = {LocalPlayer.Character, part.Parent}
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    local result = workspace:Raycast(origin, dir, params)
+    return result == nil or result.Instance:IsDescendantOf(part.Parent)
+end
+
+local function GetClosest()
+    local closest, short = nil, S.FOV
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr \~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
+            if S.TeamCheck and plr.Team and LocalPlayer.Team and plr.Team == LocalPlayer.Team then continue end
+            local part = GetTargetPart(plr.Character)
+            if part then
+                local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
+                if onScreen then
+                    local dist = (Vector2.new(pos.X, pos.Y) - Camera.ViewportSize/2).Magnitude
+                    if dist < short and Visible(part) then
+                        short = dist
+                        closest = part
+                    end
+                end
+            end
+        end
+    end
+    return closest
+end
+
+local holding = false
+UserInputService.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        holding = true
+    end
+end)
+UserInputService.InputEnded:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        holding = false
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if S.Aimbot and holding then
+        local t = GetClosest()
+        if t then
+            local goal = CFrame.new(Camera.CFrame.Position, t.Position)
+            Camera.CFrame = Camera.CFrame:Lerp(goal, S.Smooth)
+        end
+    end
+end)
+
+-- ====================== ESP (Drawing) ======================
+local drawings = {}
+
+local function ClearDrawings()
+    for _, d in pairs(drawings) do
+        if d.Remove then d:Remove() elseif d.Destroy then d:Destroy() end
+    end
+    table.clear(drawings)
+end
+
+local function GetColor()
+    if S.Rainbow then
+        return Color3.fromHSV((tick() * 0.4) % 1, 0.9, 1)
+    end
+    return S.Color
+end
+
+RunService.RenderStepped:Connect(function()
+    ClearDrawings()
+    if not S.ESP then return end
+
+    local color = GetColor()
+
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr == LocalPlayer then continue end
+        local char = plr.Character
+        if not char then continue end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not hum or not root or hum.Health <= 0 then continue end
+        if S.TeamCheck and plr.Team and LocalPlayer.Team and plr.Team == LocalPlayer.Team then continue end
+
+        local dist = (root.Position - Camera.CFrame.Position).Magnitude
+        if dist > S.Distance then continue end
+
+        local head = char:FindFirstChild("Head")
+        local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
+        if not onScreen then continue end
+
+        -- Tracer
+        if S.Tracer then
+            local line = Drawing.new("Line")
+            line.From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y)
+            line.To = Vector2.new(pos.X, pos.Y)
+            line.Color = color
+            line.Thickness = 1
+            line.Transparency = 0.7
+            table.insert(drawings, line)
+        end
+
+        -- Box
+        if S.Box and head then
+            local headPos = Camera:WorldToViewportPoint(head.Position)
+            local size = math.clamp(2000 / dist, 8, 40)
+            local box = Drawing.new("Square")
+            box.Size = Vector2.new(size, size * 1.6)
+            box.Position = Vector2.new(pos.X - size/2, headPos.Y - 5)
+            box.Color = color
+            box.Thickness = 1
+            box.Filled = false
+            table.insert(drawings, box)
+        end
+
+        -- Health
+        if S.Health then
+            local hp = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
+            local bar = Drawing.new("Line")
+            local h = math.clamp(2000 / dist, 12, 50)
+            bar.From = Vector2.new(pos.X - 20, pos.Y + h/2)
+            bar.To = Vector2.new(pos.X - 20, pos.Y + h/2 - h * hp)
+            bar.Color = Color3.fromRGB(255 * (1-hp), 255 * hp, 40)
+            bar.Thickness = 2
+            table.insert(drawings, bar)
+        end
+
+        -- Skeleton simples (R6/R15)
+        if S.Skeleton then
+            local function drawLine(p1, p2)
+                if not p1 or not p2 then return end
+                local a, ona = Camera:WorldToViewportPoint(p1.Position)
+                local b, onb = Camera:WorldToViewportPoint(p2.Position)
+                if ona and onb then
+                    local l = Drawing.new("Line")
+                    l.From = Vector2.new(a.X, a.Y)
+                    l.To = Vector2.new(b.X, b.Y)
+                    l.Color = color
+                    l.Thickness = 1.2
+                    table.insert(drawings, l)
+                end
+            end
+
+            local h = char:FindFirstChild("Head")
+            local t = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+            local lt = char:FindFirstChild("Left Arm") or char:FindFirstChild("LeftUpperArm")
+            local rt = char:FindFirstChild("Right Arm") or char:FindFirstChild("RightUpperArm")
+            local ll = char:FindFirstChild("Left Leg") or char:FindFirstChild("LeftUpperLeg")
+            local rl = char:FindFirstChild("Right Leg") or char:FindFirstChild("RightUpperLeg")
+
+            if h and t then drawLine(h, t) end
+            if t and lt then drawLine(t, lt) end
+            if t and rt then drawLine(t, rt) end
+            if t and ll then drawLine(t, ll) end
+            if t and rl then drawLine(t, rl) end
+        end
+    end
+end)
+
+print("爪卂́ 卄ㄩ乃 | Aimbot + ESP Completo carregado")
