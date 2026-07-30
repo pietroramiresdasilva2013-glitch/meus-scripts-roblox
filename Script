@@ -1,5 +1,4 @@
--- [[ mz hub - Mobile Optimized ]]
--- Funciona perfeitamente no Delta Mobile
+-- [[ mz hub - Mobile (Corrigido - Agora aparece) ]]
 
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
@@ -7,10 +6,10 @@ local UIS = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 
+-- Limpa GUI antiga
 pcall(function()
-    if CoreGui:FindFirstChild("mz_hub_GUI") then
-        CoreGui.mz_hub_GUI:Destroy()
-    end
+    local old = (gethui and gethui() or CoreGui):FindFirstChild("mz_hub_GUI")
+    if old then old:Destroy() end
 end)
 
 local savedLocations = {}
@@ -30,8 +29,15 @@ ScreenGui.Name = "mz_hub_GUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.IgnoreGuiInset = true
-ScreenGui.DisplayOrder = 999
-ScreenGui.Parent = CoreGui
+ScreenGui.DisplayOrder = 999999
+
+-- Proteção + Parent (faz aparecer no Delta Mobile)
+if syn and syn.protect_gui then
+    syn.protect_gui(ScreenGui)
+end
+
+local parent = gethui and gethui() or CoreGui
+ScreenGui.Parent = parent
 
 local Main = Instance.new("Frame")
 Main.Name = "Main"
@@ -92,7 +98,6 @@ Content.Position = UDim2.new(0, 0, 0, 38)
 Content.BackgroundTransparency = 1
 Content.Parent = Main
 
--- Função pra criar botão grande (mobile friendly)
 local function createBtn(text, posY, color)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -20, 0, 34)
@@ -114,7 +119,7 @@ local FarmBtn = createBtn("⚡  Auto Farm: OFF", 235, Color3.fromRGB(100, 55, 15
 local SellDropBtn = createBtn("💰  Vender  ▼", 275, Color3.fromRGB(170, 95, 30))
 local ConfigBtn = createBtn("⚙️  Configuração", 350, Color3.fromRGB(50, 50, 70))
 
--- Lista de locais
+-- Lista
 local ListFrame = Instance.new("ScrollingFrame")
 ListFrame.Size = UDim2.new(1, -20, 0, 100)
 ListFrame.Position = UDim2.new(0, 10, 0, 48)
@@ -407,7 +412,7 @@ local function refreshConfigList()
     end
 end
 
--- Arrastar (Mobile + PC)
+-- Arrastar
 local dragging, dragStart, startPos
 TitleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -499,7 +504,7 @@ FarmBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Loop Auto Farm (Mobile)
+-- Loop Auto Farm
 task.spawn(function()
     while true do
         if autoFarm and selectedIndex and savedLocations[selectedIndex] then
@@ -540,6 +545,4 @@ Opt2.MouseButton1Click:Connect(function()
     selectedSellType = "inventario"
     DropFrame.Visible = false
     sellDropdownOpen = false
-    SellDropBtn.Text = "💰  Vender Inventário ▼"
-    ConfirmSellBtn.Visible = true
-    Status.Text = "Modo: Vender Inventár
+    SellDropBtn.Text = "
