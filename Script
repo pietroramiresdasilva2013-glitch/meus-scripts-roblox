@@ -1,142 +1,91 @@
--- Garante compatibilidade e limpa instâncias antigas se re-executado
-if getgenv().MZ_ESP_Loaded then 
-    getgenv().MZ_ESP_Loaded:Disconnect()
-end
-
--- Carrega a Orion Library
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
-
--- Título Colorido MZ HUB
-local Window = OrionLib:MakeWindow({
-    Name = "<font color='#FF0055'>M</font><font color='#FF7700'>Z</font> <font color='#00FFDD'>H</font><font color='#0088FF'>U</font><font color='#AA00FF'>B</font>", 
-    HidePremium = false, 
-    SaveConfig = false, 
-    ConfigFolder = "MZHubMobile"
-})
-
-local TabESP = Window:MakeTab({
-    Name = "ESP Universal",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-
--- Configurações Globais
-getgenv().ESP_Enabled = false
-getgenv().ESP_TeamCheck = false
-
+--// ESP PRO Mobile
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
 
--- Pasta no Gui do Jogador para evitar lags de renderização
-local CoreGui = game:GetService("CoreGui")
-local ScreenGui = CoreGui:FindFirstChild("MZ_ESP_Container")
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ESP_PRO"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game.CoreGui
 
-if ScreenGui then ScreenGui:Destroy() end
-ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MZ_ESP_Container"
-ScreenGui.Parent = CoreGui
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0,220,0,150)
+Frame.Position = UDim2.new(0,20,0.3,0)
+Frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true
+Frame.Parent = ScreenGui
 
--- Criador de ESP individual
-local ESP_Objects = {}
+local Corner = Instance.new("UICorner",Frame)
+Corner.CornerRadius = UDim.new(0,10)
 
-local function removeESP(player)
-    if ESP_Objects[player] then
-        if ESP_Objects[player].Box then ESP_Objects[player].Box:Destroy() end
-        if ESP_Objects[player].Name then ESP_Objects[player].Name:Destroy() end
-        ESP_Objects[player] = nil
-    end
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1,0,0,35)
+Title.BackgroundTransparency = 1
+Title.Text = "ESP PRO"
+Title.Font = Enum.Font.GothamBold
+Title.TextColor3 = Color3.new(1,1,1)
+Title.TextSize = 22
+Title.Parent = Frame
+
+local Toggle = Instance.new("TextButton")
+Toggle.Size = UDim2.new(0.85,0,0,40)
+Toggle.Position = UDim2.new(0.075,0,0.4,0)
+Toggle.Text = "ESP: OFF"
+Toggle.Font = Enum.Font.GothamBold
+Toggle.TextSize = 18
+Toggle.BackgroundColor3 = Color3.fromRGB(40,40,40)
+Toggle.TextColor3 = Color3.new(1,1,1)
+Toggle.Parent = Frame
+Instance.new("UICorner",Toggle)
+
+local Close = Instance.new("TextButton")
+Close.Size = UDim2.new(0,30,0,30)
+Close.Position = UDim2.new(1,-35,0,5)
+Close.Text = "X"
+Close.BackgroundColor3 = Color3.fromRGB(180,50,50)
+Close.TextColor3 = Color3.new(1,1,1)
+Close.Parent = Frame
+Instance.new("UICorner",Close)
+
+local Enabled = false
+
+local function UpdateESP()
+	for _,plr in ipairs(Players:GetPlayers()) do
+		if plr ~= LocalPlayer and plr.Character then
+			local h = plr.Character:FindFirstChild("ESP_Highlight")
+
+			if Enabled then
+				if not h then
+					h = Instance.new("Highlight")
+					h.Name = "ESP_Highlight"
+					h.FillColor = Color3.fromRGB(255,0,0)
+					h.OutlineColor = Color3.fromRGB(255,255,255)
+					h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+					h.Parent = plr.Character
+				end
+			else
+				if h then
+					h:Destroy()
+				end
+			end
+		end
+	end
 end
 
-local function updateESP()
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local char = player.Character
-            if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChildOfClass("Humanoid") then
-                local hrp = char.HumanoidRootPart
-                local humanoid = char:FindFirstChildOfClass("Humanoid")
-                
-                -- Checagem de vida e visibilidade
-                if humanoid.Health > 0 then
-                    local hrpPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-
-                    if onScreen and getgenv().ESP_Enabled then
-                        -- Criar objetos se não existirem
-                        if not ESP_Objects[player] then
-                            local box = Instance.new("Frame")
-                            box.BackgroundTransparency = 1
-                            box.BorderSizePixel = 2
-                            box.BorderColor3 = Color3.fromRGB(255, 0, 85)
-                            box.Parent = ScreenGui
-
-                            local name = Instance.new("TextLabel")
-                            name.BackgroundTransparency = 1
-                            name.TextColor3 = Color3.fromRGB(255, 255, 255)
-                            name.TextStrokeTransparency = 0
-                            name.TextSize = 13
-                            name.Font = Enum.Font.SourceSansBold
-                            name.Parent = ScreenGui
-
-                            ESP_Objects[player] = {Box = box, Name = name}
-                        end
-
-                        -- Cálculo de tamanho adaptativo da Box universal
-                        local headPos = Camera:WorldToViewportPoint(hrp.Position + Vector3.new(0, 3, 0))
-                        local legPos = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3.5, 0))
-                        local height = math.abs(headPos.Y - legPos.Y)
-                        local width = height / 1.5
-
-                        -- Atualiza Box
-                        local box = ESP_Objects[player].Box
-                        box.Size = UDim2.new(0, width, 0, height)
-                        box.Position = UDim2.new(0, hrpPos.X - (width / 2), 0, hrpPos.Y - (height / 2))
-                        box.Visible = true
-
-                        -- Atualiza Nome e Distância
-                        local name = ESP_Objects[player].Name
-                        local distance = math.floor((hrp.Position - Camera.CFrame.Position).Magnitude)
-                        name.Text = player.DisplayName .. " [" .. distance .. "m]"
-                        name.Position = UDim2.new(0, hrpPos.X - 100, 0, hrpPos.Y - (height / 2) - 18)
-                        name.Size = UDim2.new(0, 200, 0, 15)
-                        name.Visible = true
-                    else
-                        if ESP_Objects[player] then
-                            ESP_Objects[player].Box.Visible = false
-                            ESP_Objects[player].Name.Visible = false
-                        end
-                    end
-                else
-                    removeESP(player)
-                end
-            else
-                removeESP(player)
-            end
-        end
-    end
-end
-
--- Limpa ESP de quem sair do jogo
-Players.PlayerRemoving:Connect(removeESP)
-
--- Loop principal otimizado para Mobile
-getgenv().MZ_ESP_Loaded = game:GetService("RunService").RenderStepped:Connect(function()
-    if getgenv().ESP_Enabled then
-        updateESP()
-    else
-        for _, obj in pairs(ESP_Objects) do
-            if obj.Box then obj.Box.Visible = false end
-            if obj.Name then obj.Name.Visible = false end
-        end
-    end
+Toggle.MouseButton1Click:Connect(function()
+	Enabled = not Enabled
+	Toggle.Text = Enabled and "ESP: ON" or "ESP: OFF"
+	UpdateESP()
 end)
 
--- Botão de Toggle no Menu
-TabESP:AddToggle({
-    Name = "Ativar ESP (Universal)",
-    Default = false,
-    Callback = function(Value)
-        getgenv().ESP_Enabled = Value
-    end    
-})
+Players.PlayerAdded:Connect(function(plr)
+	plr.CharacterAdded:Connect(function()
+		task.wait(1)
+		UpdateESP()
+	end)
+end)
 
-OrionLib:Init()
+Close.MouseButton1Click:Connect(function()
+	ScreenGui:Destroy()
+end)
