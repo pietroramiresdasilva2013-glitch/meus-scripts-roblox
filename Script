@@ -1,347 +1,101 @@
--- MZ HUB | Rivals | Aimbot + ESP + FOV Regulável | Delta Mobile
--- Título rainbow + Arrastar + Minimizar
+-- Carrega a Biblioteca do Painel (Orion Library)
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
 
+-- Cria a Janela Principal com o Título Colorido em HTML/RichText
+local Window = OrionLib:MakeWindow({
+    Name = "<font color='#FF0055'>M</font><font color='#FF7700'>Z</font> <font color='#00FFDD'>H</font><font color='#0088FF'>U</font><font color='#AA00FF'>B</font>", 
+    HidePremium = false, 
+    SaveConfig = false, 
+    ConfigFolder = "MZHubConfig"
+})
+
+-- Aba do ESP
+local TabESP = Window:MakeTab({
+    Name = "ESP / Visuals",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+-- Variáveis de Controle
+local ESP_Enabled = false
+local ESP_Boxes = {}
+local ESP_Names = {}
+
+-- Função para Criar e Atualizar os ESPs
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
-local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
 
--- Limpa painel antigo
-pcall(function()
-    if CoreGui:FindFirstChild("MZ_HUB") then
-        CoreGui.MZ_HUB:Destroy()
-    end
-end)
+local function createESP(player)
+    if player == LocalPlayer then return end
 
--- ==================== CONFIG ====================
-local Settings = {
-    Aimbot = false,
-    ESP = false,
-    ShowFOV = true,
-    FOV = 120,          -- valor inicial
-    Smooth = 0.18,
-    TeamCheck = true,
-    TargetPart = "Head", -- "Head" ou "HumanoidRootPart"
-}
+    -- Criar Highlight (Box Colorido em volta do personagem)
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "MZ_ESP_" .. player.Name
+    highlight.FillColor = Color3.fromRGB(255, 0, 100)
+    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.Enabled = ESP_Enabled
 
--- ==================== GUI ====================
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MZ_HUB"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.Parent = CoreGui
-
-local Main = Instance.new("Frame")
-Main.Name = "Main"
-Main.Size = UDim2.new(0, 290, 0, 470)
-Main.Position = UDim2.new(0.5, -145, 0.3, 0)
-Main.BackgroundColor3 = Color3.fromRGB(16, 16, 20)
-Main.BorderSizePixel = 0
-Main.Active = true
-Main.ClipsDescendants = true
-Main.Parent = ScreenGui
-
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
-local stroke = Instance.new("UIStroke", Main)
-stroke.Color = Color3.fromRGB(70, 70, 90)
-stroke.Thickness = 1.4
-
--- TopBar
-local TopBar = Instance.new("Frame")
-TopBar.Size = UDim2.new(1, 0, 0, 42)
-TopBar.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
-TopBar.BorderSizePixel = 0
-TopBar.Parent = Main
-Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 12)
-
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -90, 1, 0)
-Title.Position = UDim2.new(0, 12, 0, 0)
-Title.BackgroundTransparency = 1
-Title.Text = "MZ HUB"
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 20
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = TopBar
-
--- Rainbow Title
-task.spawn(function()
-    local h = 0
-    while Title and Title.Parent do
-        h = (h + 0.01) % 1
-        Title.TextColor3 = Color3.fromHSV(h, 0.85, 1)
-        task.wait(0.03)
-    end
-end)
-
--- Botões minimizar / fechar
-local function MakeBtn(txt, posX, color)
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0, 34, 0, 26)
-    b.Position = UDim2.new(1, posX, 0.5, -13)
-    b.BackgroundColor3 = color
-    b.Text = txt
-    b.TextColor3 = Color3.new(1,1,1)
-    b.Font = Enum.Font.GothamBold
-    b.TextSize = 18
-    b.Parent = TopBar
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
-    return b
-end
-
-local MinimizeBtn = MakeBtn("−", -78, Color3.fromRGB(40,40,50))
-local CloseBtn = MakeBtn("×", -38, Color3.fromRGB(180,40,40))
-
--- Content
-local Content = Instance.new("ScrollingFrame")
-Content.Size = UDim2.new(1, -12, 1, -52)
-Content.Position = UDim2.new(0, 6, 0, 48)
-Content.BackgroundTransparency = 1
-Content.ScrollBarThickness = 3
-Content.CanvasSize = UDim2.new(0, 0, 0, 520)
-Content.Parent = Main
-
-local List = Instance.new("UIListLayout", Content)
-List.Padding = UDim.new(0, 7)
-List.SortOrder = Enum.SortOrder.LayoutOrder
-
--- Funções de criação de UI
-local function CreateToggle(name, default, callback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -6, 0, 38)
-    btn.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
-    btn.Text = ""
-    btn.AutoButtonColor = false
-    btn.Parent = Content
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    -- Criar Nome Flutuante (BillboardGui)
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "MZ_Name_" .. player.Name
+    billboard.AlwaysOnTop = true
+    billboard.Size = UDim2.new(0, 200, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.Enabled = ESP_Enabled
 
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -55, 1, 0)
-    label.Position = UDim2.new(0, 12, 0, 0)
+    label.Parent = billboard
+    label.Size = UDim2.new(1, 0, 1, 0)
     label.BackgroundTransparency = 1
-    label.Text = name
-    label.Font = Enum.Font.Gotham
+    label.Text = player.DisplayName .. " (@" .. player.Name .. ")"
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextStrokeTransparency = 0
     label.TextSize = 14
-    label.TextColor3 = Color3.fromRGB(230,230,240)
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = btn
+    label.Font = Enum.Font.SourceSansBold
 
-    local status = Instance.new("TextLabel")
-    status.Size = UDim2.new(0, 42, 0, 22)
-    status.Position = UDim2.new(1, -50, 0.5, -11)
-    status.BackgroundColor3 = default and Color3.fromRGB(40,170,70) or Color3.fromRGB(55,55,65)
-    status.Text = default and "ON" or "OFF"
-    status.Font = Enum.Font.GothamBold
-    status.TextSize = 12
-    status.TextColor3 = Color3.new(1,1,1)
-    status.Parent = btn
-    Instance.new("UICorner", status).CornerRadius = UDim.new(0, 6)
-
-    local on = default
-    btn.MouseButton1Click:Connect(function()
-        on = not on
-        status.Text = on and "ON" or "OFF"
-        status.BackgroundColor3 = on and Color3.fromRGB(40,170,70) or Color3.fromRGB(55,55,65)
-        if callback then callback(on) end
-    end)
-end
-
-local function CreateButton(name, callback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -6, 0, 38)
-    btn.BackgroundColor3 = Color3.fromRGB(42, 42, 55)
-    btn.Text = name
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 14
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.AutoButtonColor = false
-    btn.Parent = Content
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-    btn.MouseButton1Click:Connect(function()
-        if callback then callback() end
-    end)
-end
-
--- ==================== TOGGLES ====================
-CreateToggle("Aimbot", false, function(v) Settings.Aimbot = v end)
-CreateToggle("ESP", false, function(v) Settings.ESP = v end)
-CreateToggle("Mostrar FOV", true, function(v) Settings.ShowFOV = v end)
-CreateToggle("Team Check", true, function(v) Settings.TeamCheck = v end)
-
--- ========== REGULADOR DE FOV ==========
-local FOVFrame = Instance.new("Frame")
-FOVFrame.Size = UDim2.new(1, -6, 0, 42)
-FOVFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
-FOVFrame.Parent = Content
-Instance.new("UICorner", FOVFrame).CornerRadius = UDim.new(0, 8)
-
-local FOVLabel = Instance.new("TextLabel")
-FOVLabel.Size = UDim2.new(0.5, 0, 1, 0)
-FOVLabel.Position = UDim2.new(0, 12, 0, 0)
-FOVLabel.BackgroundTransparency = 1
-FOVLabel.Text = "FOV: " .. Settings.FOV
-FOVLabel.Font = Enum.Font.GothamBold
-FOVLabel.TextSize = 14
-FOVLabel.TextColor3 = Color3.fromRGB(0, 255, 140)
-FOVLabel.TextXAlignment = Enum.TextXAlignment.Left
-FOVLabel.Parent = FOVFrame
-
-local function UpdateFOVLabel()
-    FOVLabel.Text = "FOV: " .. Settings.FOV
-end
-
--- Botão -
-local MinusBtn = Instance.new("TextButton")
-MinusBtn.Size = UDim2.new(0, 40, 0, 28)
-MinusBtn.Position = UDim2.new(1, -95, 0.5, -14)
-MinusBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 40)
-MinusBtn.Text = "−"
-MinusBtn.Font = Enum.Font.GothamBold
-MinusBtn.TextSize = 20
-MinusBtn.TextColor3 = Color3.new(1,1,1)
-MinusBtn.Parent = FOVFrame
-Instance.new("UICorner", MinusBtn).CornerRadius = UDim.new(0, 6)
-
-MinusBtn.MouseButton1Click:Connect(function()
-    Settings.FOV = math.clamp(Settings.FOV - 10, 40, 400)
-    UpdateFOVLabel()
-end)
-
--- Botão +
-local PlusBtn = Instance.new("TextButton")
-PlusBtn.Size = UDim2.new(0, 40, 0, 28)
-PlusBtn.Position = UDim2.new(1, -48, 0.5, -14)
-PlusBtn.BackgroundColor3 = Color3.fromRGB(40, 60, 40)
-PlusBtn.Text = "+"
-PlusBtn.Font = Enum.Font.GothamBold
-PlusBtn.TextSize = 20
-PlusBtn.TextColor3 = Color3.new(1,1,1)
-PlusBtn.Parent = FOVFrame
-Instance.new("UICorner", PlusBtn).CornerRadius = UDim.new(0, 6)
-
-PlusBtn.MouseButton1Click:Connect(function()
-    Settings.FOV = math.clamp(Settings.FOV + 10, 40, 400)
-    UpdateFOVLabel()
-end)
-
--- Target
-CreateButton("Target: Cabeça", function()
-    Settings.TargetPart = "Head"
-end)
-CreateButton("Target: Peito", function()
-    Settings.TargetPart = "HumanoidRootPart"
-end)
-
-CreateToggle("WalkSpeed 28", false, function(v)
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.WalkSpeed = v and 28 or 16
-    end
-end)
-
-CreateButton("FPS Boost", function()
-    local Lighting = game:GetService("Lighting")
-    Lighting.GlobalShadows = false
-    Lighting.FogEnd = 9e9
-    settings().Rendering.QualityLevel = 1
-end)
-
--- ==================== FOV CIRCLE ====================
-local FOVCircle = Drawing.new("Circle")
-FOVCircle.Thickness = 1.5
-FOVCircle.NumSides = 64
-FOVCircle.Radius = Settings.FOV
-FOVCircle.Filled = false
-FOVCircle.Color = Color3.fromRGB(0, 255, 140)
-FOVCircle.Visible = false
-FOVCircle.ZIndex = 999
-
--- ==================== AIMBOT LOOP ====================
-local function GetClosest()
-    local closest = nil
-    local shortest = Settings.FOV
-
-    for _, player in pairs(Players:GetPlayers()) do
-        if player \~= LocalPlayer and player.Character and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
-            if Settings.TeamCheck and player.Team == LocalPlayer.Team then continue end
-
-            local part = player.Character:FindFirstChild(Settings.TargetPart) or player.Character:FindFirstChild("HumanoidRootPart")
-            if part then
-                local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
-                if onScreen then
-                    local dist = (Vector2.new(pos.X, pos.Y) - UserInputService:GetMouseLocation()).Magnitude
-                    if dist < shortest then
-                        shortest = dist
-                        closest = part
-                    end
-                end
+    -- Aplicar quando o personagem carregar
+    local function applyToCharacter(char)
+        if char then
+            highlight.Parent = char
+            
+            local head = char:WaitForChild("Head", 5)
+            if head then
+                billboard.Adornee = head
+                billboard.Parent = head
             end
         end
     end
-    return closest
+
+    if player.Character then applyToCharacter(player.Character) end
+    player.CharacterAdded:Connect(applyToCharacter)
+
+    ESP_Boxes[player] = highlight
+    ESP_Names[player] = billboard
 end
 
-RunService.RenderStepped:Connect(function()
-    -- FOV
-    FOVCircle.Position = UserInputService:GetMouseLocation()
-    FOVCircle.Radius = Settings.FOV
-    FOVCircle.Visible = Settings.ShowFOV and Settings.Aimbot
+-- Monitorar Entrada de Novos Jogadores
+for _, player in pairs(Players:GetPlayers()) do
+    createESP(player)
+end
+Players.PlayerAdded:Connect(createESP)
 
-    -- Aimbot
-    if Settings.Aimbot then
-        local target = GetClosest()
-        if target then
-            local cam = Camera.CFrame
-            local goal = CFrame.new(cam.Position, target.Position)
-            Camera.CFrame = cam:Lerp(goal, Settings.Smooth)
+-- Alternar o ESP ON/OFF
+TabESP:AddToggle({
+    Name = "Ativar ESP (Boxes & Nomes)",
+    Default = false,
+    Callback = function(Value)
+        ESP_Enabled = Value
+        for player, highlight in pairs(ESP_Boxes) do
+            if highlight then highlight.Enabled = Value end
         end
-    end
-end)
+        for player, billboard in pairs(ESP_Names) do
+            if billboard then billboard.Enabled = Value end
+        end
+    end    
+})
 
--- ==================== DRAG ====================
-local dragging, dragStart, startPos = false, nil, nil
-
-TopBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = Main.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-
--- Minimizar / Fechar
-local minimized = false
-local originalSize = Main.Size
-
-MinimizeBtn.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    if minimized then
-        Content.Visible = false
-        Main.Size = UDim2.new(0, 290, 0, 42)
-        MinimizeBtn.Text = "+"
-    else
-        Content.Visible = true
-        Main.Size = originalSize
-        MinimizeBtn.Text = "−"
-    end
-end)
-
-CloseBtn.MouseButton1Click:Connect(function()
-    FOVCircle:Remove()
-    ScreenGui:Destroy()
-end)
-
-print("MZ HUB carregado - FOV regulável!")
+-- Inicializa o Painel
+OrionLib:Init()
