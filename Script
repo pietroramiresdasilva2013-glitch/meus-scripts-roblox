@@ -1,62 +1,73 @@
--- 爪卂́ 卄ㄩ乃 | Aimbot + ESP Completo | Delta Mobile
--- Cabeça/Pescoço/Torso/Quadril | Linha | Esqueleto | Caixa | Vida | Distância | Cor + Rainbow
+-- MZ HUB | Rivals | Delta Executor Mobile
+-- Título colorido + Arrastar + Minimizar
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
-local Camera = workspace.CurrentCamera
+local CoreGui = game:GetService("CoreGui")
+
 local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
 
-if LocalPlayer.PlayerGui:FindFirstChild("MaHubFull") then
-    LocalPlayer.PlayerGui.MaHubFull:Destroy()
-end
+-- Remove painel antigo
+pcall(function()
+    if CoreGui:FindFirstChild("MZ_HUB") then
+        CoreGui.MZ_HUB:Destroy()
+    end
+end)
 
+-- ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MaHubFull"
+ScreenGui.Name = "MZ_HUB"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.Parent = LocalPlayer.PlayerGui
+ScreenGui.Parent = CoreGui
 
--- ====================== MAIN FRAME ======================
+-- Main Frame
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 300, 0, 420)
-Main.Position = UDim2.new(0.5, -150, 0.5, -210)
+Main.Name = "Main"
+Main.Size = UDim2.new(0, 280, 0, 340)
+Main.Position = UDim2.new(0.5, -140, 0.5, -170)
 Main.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 Main.BorderSizePixel = 0
 Main.Active = true
+Main.ClipsDescendants = true
 Main.Parent = ScreenGui
 
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
-local stroke = Instance.new("UIStroke", Main)
-stroke.Color = Color3.fromRGB(80, 80, 120)
-stroke.Thickness = 1.5
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 12)
+MainCorner.Parent = Main
 
--- Title Bar
-local TitleBar = Instance.new("Frame")
-TitleBar.Size = UDim2.new(1, 0, 0, 36)
-TitleBar.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
-TitleBar.BorderSizePixel = 0
-TitleBar.Parent = Main
-Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 10)
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(80, 80, 100)
+MainStroke.Thickness = 1.5
+MainStroke.Parent = Main
 
-local TitleFix = Instance.new("Frame")
-TitleFix.Size = UDim2.new(1, 0, 0, 12)
-TitleFix.Position = UDim2.new(0, 0, 1, -12)
-TitleFix.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
-TitleFix.BorderSizePixel = 0
-TitleFix.Parent = TitleBar
+-- Top Bar
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Size = UDim2.new(1, 0, 0, 42)
+TopBar.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+TopBar.BorderSizePixel = 0
+TopBar.Parent = Main
 
+local TopCorner = Instance.new("UICorner")
+TopCorner.CornerRadius = UDim.new(0, 12)
+TopCorner.Parent = TopBar
+
+-- Título Rainbow MZ HUB
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -70, 1, 0)
-Title.Position = UDim2.new(0, 10, 0, 0)
+Title.Name = "Title"
+Title.Size = UDim2.new(1, -90, 1, 0)
+Title.Position = UDim2.new(0, 12, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "爪卂́   卄ㄩ乃"
+Title.Text = "MZ HUB"
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 18
+Title.TextSize = 20
 Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = TitleBar
+Title.Parent = TopBar
 
+-- Animação Rainbow no título
 task.spawn(function()
     local hue = 0
     while Title and Title.Parent do
@@ -66,449 +77,229 @@ task.spawn(function()
     end
 end)
 
-local MinBtn = Instance.new("TextButton")
-MinBtn.Size = UDim2.new(0, 28, 0, 28)
-MinBtn.Position = UDim2.new(1, -62, 0.5, -14)
-MinBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
-MinBtn.Text = "–"
-MinBtn.TextColor3 = Color3.new(1,1,1)
-MinBtn.Font = Enum.Font.GothamBold
-MinBtn.TextSize = 20
-MinBtn.Parent = TitleBar
-Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 6)
+-- Botão Minimizar
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Name = "Minimize"
+MinimizeBtn.Size = UDim2.new(0, 36, 0, 28)
+MinimizeBtn.Position = UDim2.new(1, -80, 0.5, -14)
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+MinimizeBtn.Text = "−"
+MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.TextSize = 22
+MinimizeBtn.Parent = TopBar
 
+local MinCorner = Instance.new("UICorner")
+MinCorner.CornerRadius = UDim.new(0, 6)
+MinCorner.Parent = MinimizeBtn
+
+-- Botão Fechar
 local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 28, 0, 28)
-CloseBtn.Position = UDim2.new(1, -30, 0.5, -14)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
-CloseBtn.Text = "X"
-CloseBtn.TextColor3 = Color3.new(1,1,1)
+CloseBtn.Name = "Close"
+CloseBtn.Size = UDim2.new(0, 36, 0, 28)
+CloseBtn.Position = UDim2.new(1, -40, 0.5, -14)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+CloseBtn.Text = "×"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextSize = 14
-CloseBtn.Parent = TitleBar
-Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
+CloseBtn.TextSize = 20
+CloseBtn.Parent = TopBar
 
--- Content com Scroll
-local Content = Instance.new("ScrollingFrame")
-Content.Size = UDim2.new(1, -16, 1, -48)
-Content.Position = UDim2.new(0, 8, 0, 42)
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 6)
+CloseCorner.Parent = CloseBtn
+
+-- Container de conteúdo
+local Content = Instance.new("Frame")
+Content.Name = "Content"
+Content.Size = UDim2.new(1, -16, 1, -54)
+Content.Position = UDim2.new(0, 8, 0, 48)
 Content.BackgroundTransparency = 1
-Content.BorderSizePixel = 0
-Content.ScrollBarThickness = 4
-Content.ScrollBarImageColor3 = Color3.fromRGB(120, 100, 255)
-Content.CanvasSize = UDim2.new(0, 0, 0, 0)
 Content.Parent = Main
 
-local Layout = Instance.new("UIListLayout")
-Layout.SortOrder = Enum.SortOrder.LayoutOrder
-Layout.Padding = UDim.new(0, 7)
-Layout.Parent = Content
+local UIList = Instance.new("UIListLayout")
+UIList.Padding = UDim.new(0, 8)
+UIList.SortOrder = Enum.SortOrder.LayoutOrder
+UIList.Parent = Content
 
-Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    Content.CanvasSize = UDim2.new(0, 0, 0, Layout.AbsoluteContentSize.Y + 12)
-end)
+-- Função para criar botão toggle
+local function CreateToggle(name, default, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 40)
+    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+    btn.Text = ""
+    btn.AutoButtonColor = false
+    btn.Parent = Content
 
--- ====================== SETTINGS ======================
-local S = {
-    Aimbot = false,
-    FOV = 140,
-    Smooth = 0.22,
-    TeamCheck = true,
-    WallCheck = false,
-    Target = "Head", -- Head, Neck, Torso, Root
-
-    ESP = true,
-    Box = true,
-    Tracer = true,
-    Skeleton = true,
-    Health = true,
-    Distance = 800,
-    Rainbow = false,
-    Color = Color3.fromRGB(140, 100, 255)
-}
-
-local HitParts = {"Head", "Neck", "Torso", "Root"}
-local HitIndex = 1
-
--- ====================== UI HELPERS ======================
-local function AddSection(text)
-    local l = Instance.new("TextLabel")
-    l.Size = UDim2.new(1, 0, 0, 22)
-    l.BackgroundTransparency = 1
-    l.Text = text
-    l.TextColor3 = Color3.fromRGB(180, 160, 255)
-    l.Font = Enum.Font.GothamBold
-    l.TextSize = 13
-    l.TextXAlignment = Enum.TextXAlignment.Left
-    l.Parent = Content
-end
-
-local function AddToggle(name, default, callback)
-    local f = Instance.new("Frame")
-    f.Size = UDim2.new(1, 0, 0, 34)
-    f.BackgroundColor3 = Color3.fromRGB(30, 30, 42)
-    f.Parent = Content
-    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 6)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = btn
 
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -55, 1, 0)
-    label.Position = UDim2.new(0, 10, 0, 0)
+    label.Size = UDim2.new(1, -50, 1, 0)
+    label.Position = UDim2.new(0, 12, 0, 0)
     label.BackgroundTransparency = 1
     label.Text = name
-    label.TextColor3 = Color3.fromRGB(230, 230, 255)
     label.Font = Enum.Font.Gotham
-    label.TextSize = 13
+    label.TextSize = 15
+    label.TextColor3 = Color3.fromRGB(230, 230, 240)
     label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = f
+    label.Parent = btn
 
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 42, 0, 22)
-    btn.Position = UDim2.new(1, -50, 0.5, -11)
-    btn.BackgroundColor3 = default and Color3.fromRGB(70, 170, 80) or Color3.fromRGB(55, 55, 70)
-    btn.Text = default and "ON" or "OFF"
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 11
-    btn.Parent = f
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
+    local status = Instance.new("TextLabel")
+    status.Size = UDim2.new(0, 40, 0, 22)
+    status.Position = UDim2.new(1, -48, 0.5, -11)
+    status.BackgroundColor3 = default and Color3.fromRGB(50, 180, 80) or Color3.fromRGB(60, 60, 70)
+    status.Text = default and "ON" or "OFF"
+    status.Font = Enum.Font.GothamBold
+    status.TextSize = 12
+    status.TextColor3 = Color3.fromRGB(255, 255, 255)
+    status.Parent = btn
 
-    local state = default
+    local statusCorner = Instance.new("UICorner")
+    statusCorner.CornerRadius = UDim.new(0, 6)
+    statusCorner.Parent = status
+
+    local enabled = default
     btn.MouseButton1Click:Connect(function()
-        state = not state
-        btn.BackgroundColor3 = state and Color3.fromRGB(70, 170, 80) or Color3.fromRGB(55, 55, 70)
-        btn.Text = state and "ON" or "OFF"
-        callback(state)
+        enabled = not enabled
+        status.Text = enabled and "ON" or "OFF"
+        status.BackgroundColor3 = enabled and Color3.fromRGB(50, 180, 80) or Color3.fromRGB(60, 60, 70)
+        if callback then callback(enabled) end
     end)
+
+    return btn
 end
 
-local function AddButton(text, callback)
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, 0, 0, 32)
-    b.BackgroundColor3 = Color3.fromRGB(45, 40, 70)
-    b.Text = text
-    b.TextColor3 = Color3.new(1,1,1)
-    b.Font = Enum.Font.Gotham
-    b.TextSize = 13
-    b.Parent = Content
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
-    b.MouseButton1Click:Connect(callback)
-    return b
-end
+-- Função para criar botão normal
+local function CreateButton(name, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 40)
+    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+    btn.Text = name
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 15
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.AutoButtonColor = false
+    btn.Parent = Content
 
--- ====================== UI ======================
-AddSection("— AIMBOT —")
-AddToggle("Aimbot", false, function(v) S.Aimbot = v end)
-AddToggle("Team Check", true, function(v) S.TeamCheck = v end)
-AddToggle("Wall Check", false, function(v) S.WallCheck = v end)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = btn
 
-local TargetBtn = AddButton("Mirar: Cabeça", function()
-    HitIndex = HitIndex % #HitParts + 1
-    S.Target = HitParts[HitIndex]
-    local names = {Head = "Cabeça", Neck = "Pescoço", Torso = "Torso", Root = "Quadril"}
-    TargetBtn.Text = "Mirar: " .. (names[S.Target] or S.Target)
-end)
-
--- FOV
-local FOVFrame = Instance.new("Frame")
-FOVFrame.Size = UDim2.new(1, 0, 0, 48)
-FOVFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 42)
-FOVFrame.Parent = Content
-Instance.new("UICorner", FOVFrame).CornerRadius = UDim.new(0, 6)
-
-local FOVLabel = Instance.new("TextLabel")
-FOVLabel.Size = UDim2.new(1, 0, 0, 18)
-FOVLabel.Position = UDim2.new(0, 0, 0, 3)
-FOVLabel.BackgroundTransparency = 1
-FOVLabel.Text = "FOV: " .. S.FOV
-FOVLabel.TextColor3 = Color3.fromRGB(200, 180, 255)
-FOVLabel.Font = Enum.Font.GothamBold
-FOVLabel.TextSize = 13
-FOVLabel.Parent = FOVFrame
-
-local function makeSmallBtn(txt, x, cb)
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0, 55, 0, 20)
-    b.Position = UDim2.new(0.5, x, 1, -24)
-    b.BackgroundColor3 = Color3.fromRGB(55, 45, 90)
-    b.Text = txt
-    b.TextColor3 = Color3.new(1,1,1)
-    b.Font = Enum.Font.GothamBold
-    b.TextSize = 11
-    b.Parent = FOVFrame
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 5)
-    b.MouseButton1Click:Connect(cb)
-end
-
-makeSmallBtn("– FOV", -65, function()
-    S.FOV = math.max(30, S.FOV - 15)
-    FOVLabel.Text = "FOV: " .. S.FOV
-end)
-makeSmallBtn("+ FOV", 10, function()
-    S.FOV = math.min(400, S.FOV + 15)
-    FOVLabel.Text = "FOV: " .. S.FOV
-end)
-
-AddSection("— ESP —")
-AddToggle("ESP Geral", true, function(v) S.ESP = v end)
-AddToggle("Caixa", true, function(v) S.Box = v end)
-AddToggle("Linha (Tracer)", true, function(v) S.Tracer = v end)
-AddToggle("Esqueleto", true, function(v) S.Skeleton = v end)
-AddToggle("Vida", true, function(v) S.Health = v end)
-AddToggle("Cor Colorida (Rainbow)", false, function(v) S.Rainbow = v end)
-
--- Distância
-local DistFrame = Instance.new("Frame")
-DistFrame.Size = UDim2.new(1, 0, 0, 48)
-DistFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 42)
-DistFrame.Parent = Content
-Instance.new("UICorner", DistFrame).CornerRadius = UDim.new(0, 6)
-
-local DistLabel = Instance.new("TextLabel")
-DistLabel.Size = UDim2.new(1, 0, 0, 18)
-DistLabel.Position = UDim2.new(0, 0, 0, 3)
-DistLabel.BackgroundTransparency = 1
-DistLabel.Text = "Distância: " .. S.Distance
-DistLabel.TextColor3 = Color3.fromRGB(200, 180, 255)
-DistLabel.Font = Enum.Font.GothamBold
-DistLabel.TextSize = 13
-DistLabel.Parent = DistFrame
-
-makeSmallBtn("– Dist", -65, function()
-    S.Distance = math.max(100, S.Distance - 100)
-    DistLabel.Text = "Distância: " .. S.Distance
-end).Parent = DistFrame
-
-makeSmallBtn("+ Dist", 10, function()
-    S.Distance = math.min(3000, S.Distance + 100)
-    DistLabel.Text = "Distância: " .. S.Distance
-end).Parent = DistFrame
-
--- Cores rápidas
-AddSection("— COR DO ESP —")
-local colors = {
-    {Color3.fromRGB(140, 100, 255), "Roxo"},
-    {Color3.fromRGB(255, 70, 70), "Vermelho"},
-    {Color3.fromRGB(70, 200, 100), "Verde"},
-    {Color3.fromRGB(70, 160, 255), "Azul"},
-    {Color3.fromRGB(255, 200, 50), "Amarelo"},
-    {Color3.fromRGB(255, 120, 220), "Rosa"},
-}
-
-for _, c in ipairs(colors) do
-    AddButton("Cor: " .. c[2], function()
-        S.Color = c[1]
-        S.Rainbow = false
+    btn.MouseButton1Click:Connect(function()
+        if callback then callback() end
     end)
+
+    return btn
 end
 
--- ====================== MINIMIZE / CLOSE / DRAG ======================
-local minimized = false
-local originalSize = Main.Size
+-- ========== FEATURES ==========
+local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local hum = char:WaitForChild("Humanoid")
 
-MinBtn.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    Content.Visible = not minimized
-    Main.Size = minimized and UDim2.new(0, 300, 0, 36) or originalSize
-    MinBtn.Text = minimized and "+" or "–"
+CreateToggle("WalkSpeed 30", false, function(state)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = state and 30 or 16
+    end
 end)
 
-CloseBtn.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
+CreateToggle("JumpPower 80", false, function(state)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.JumpPower = state and 80 or 50
+    end
 end)
 
-local dragging, dragStart, startPos
-TitleBar.InputBegan:Connect(function(input)
+CreateToggle("Infinite Jump", false, function(state)
+    if state then
+        _G.MZ_InfJump = UserInputService.JumpRequest:Connect(function()
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end)
+    else
+        if _G.MZ_InfJump then
+            _G.MZ_InfJump:Disconnect()
+            _G.MZ_InfJump = nil
+        end
+    end
+end)
+
+CreateButton("Reset Character", function()
+    if LocalPlayer.Character then
+        LocalPlayer.Character:BreakJoints()
+    end
+end)
+
+CreateButton("FPS Boost", function()
+    local lighting = game:GetService("Lighting")
+    lighting.GlobalShadows = false
+    lighting.FogEnd = 9e9
+    settings().Rendering.QualityLevel = 1
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.Material = Enum.Material.Plastic
+            v.Reflectance = 0
+        elseif v:IsA("Decal") or v:IsA("Texture") then
+            v.Transparency = 1
+        end
+    end
+end)
+
+-- ========== DRAG (Mobile + PC) ==========
+local dragging = false
+local dragStart, startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    Main.Position = UDim2.new(
+        startPos.X.Scale,
+        startPos.X.Offset + delta.X,
+        startPos.Y.Scale,
+        startPos.Y.Offset + delta.Y
+    )
+end
+
+TopBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
         dragStart = input.Position
         startPos = Main.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
     end
 end)
-TitleBar.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
-    end
-end)
+
 UserInputService.InputChanged:Connect(function(input)
     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        update(input)
     end
 end)
 
--- ====================== AIMBOT LOGIC ======================
-local function GetTargetPart(char)
-    if S.Target == "Head" then
-        return char:FindFirstChild("Head")
-    elseif S.Target == "Neck" then
-        return char:FindFirstChild("Head") -- aproximação
-    elseif S.Target == "Torso" then
-        return char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
-    elseif S.Target == "Root" then
-        return char:FindFirstChild("HumanoidRootPart")
-    end
-    return char:FindFirstChild("Head")
-end
+-- ========== MINIMIZAR ==========
+local minimized = false
+local originalSize = Main.Size
 
-local function Visible(part)
-    if not S.WallCheck then return true end
-    local origin = Camera.CFrame.Position
-    local dir = (part.Position - origin)
-    local params = RaycastParams.new()
-    params.FilterDescendantsInstances = {LocalPlayer.Character, part.Parent}
-    params.FilterType = Enum.RaycastFilterType.Exclude
-    local result = workspace:Raycast(origin, dir, params)
-    return result == nil or result.Instance:IsDescendantOf(part.Parent)
-end
-
-local function GetClosest()
-    local closest, short = nil, S.FOV
-    for _, plr in pairs(Players:GetPlayers()) do
-        if plr \~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
-            if S.TeamCheck and plr.Team and LocalPlayer.Team and plr.Team == LocalPlayer.Team then continue end
-            local part = GetTargetPart(plr.Character)
-            if part then
-                local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
-                if onScreen then
-                    local dist = (Vector2.new(pos.X, pos.Y) - Camera.ViewportSize/2).Magnitude
-                    if dist < short and Visible(part) then
-                        short = dist
-                        closest = part
-                    end
-                end
-            end
-        end
-    end
-    return closest
-end
-
-local holding = false
-UserInputService.InputBegan:Connect(function(i)
-    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-        holding = true
-    end
-end)
-UserInputService.InputEnded:Connect(function(i)
-    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-        holding = false
+MinimizeBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        Content.Visible = false
+        Main.Size = UDim2.new(0, 280, 0, 42)
+        MinimizeBtn.Text = "+"
+    else
+        Content.Visible = true
+        Main.Size = originalSize
+        MinimizeBtn.Text = "−"
     end
 end)
 
-RunService.RenderStepped:Connect(function()
-    if S.Aimbot and holding then
-        local t = GetClosest()
-        if t then
-            local goal = CFrame.new(Camera.CFrame.Position, t.Position)
-            Camera.CFrame = Camera.CFrame:Lerp(goal, S.Smooth)
-        end
-    end
+-- ========== FECHAR ==========
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
 end)
 
--- ====================== ESP (Drawing) ======================
-local drawings = {}
-
-local function ClearDrawings()
-    for _, d in pairs(drawings) do
-        if d.Remove then d:Remove() elseif d.Destroy then d:Destroy() end
-    end
-    table.clear(drawings)
-end
-
-local function GetColor()
-    if S.Rainbow then
-        return Color3.fromHSV((tick() * 0.4) % 1, 0.9, 1)
-    end
-    return S.Color
-end
-
-RunService.RenderStepped:Connect(function()
-    ClearDrawings()
-    if not S.ESP then return end
-
-    local color = GetColor()
-
-    for _, plr in pairs(Players:GetPlayers()) do
-        if plr == LocalPlayer then continue end
-        local char = plr.Character
-        if not char then continue end
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if not hum or not root or hum.Health <= 0 then continue end
-        if S.TeamCheck and plr.Team and LocalPlayer.Team and plr.Team == LocalPlayer.Team then continue end
-
-        local dist = (root.Position - Camera.CFrame.Position).Magnitude
-        if dist > S.Distance then continue end
-
-        local head = char:FindFirstChild("Head")
-        local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
-        if not onScreen then continue end
-
-        -- Tracer
-        if S.Tracer then
-            local line = Drawing.new("Line")
-            line.From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y)
-            line.To = Vector2.new(pos.X, pos.Y)
-            line.Color = color
-            line.Thickness = 1
-            line.Transparency = 0.7
-            table.insert(drawings, line)
-        end
-
-        -- Box
-        if S.Box and head then
-            local headPos = Camera:WorldToViewportPoint(head.Position)
-            local size = math.clamp(2000 / dist, 8, 40)
-            local box = Drawing.new("Square")
-            box.Size = Vector2.new(size, size * 1.6)
-            box.Position = Vector2.new(pos.X - size/2, headPos.Y - 5)
-            box.Color = color
-            box.Thickness = 1
-            box.Filled = false
-            table.insert(drawings, box)
-        end
-
-        -- Health
-        if S.Health then
-            local hp = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
-            local bar = Drawing.new("Line")
-            local h = math.clamp(2000 / dist, 12, 50)
-            bar.From = Vector2.new(pos.X - 20, pos.Y + h/2)
-            bar.To = Vector2.new(pos.X - 20, pos.Y + h/2 - h * hp)
-            bar.Color = Color3.fromRGB(255 * (1-hp), 255 * hp, 40)
-            bar.Thickness = 2
-            table.insert(drawings, bar)
-        end
-
-        -- Skeleton simples (R6/R15)
-        if S.Skeleton then
-            local function drawLine(p1, p2)
-                if not p1 or not p2 then return end
-                local a, ona = Camera:WorldToViewportPoint(p1.Position)
-                local b, onb = Camera:WorldToViewportPoint(p2.Position)
-                if ona and onb then
-                    local l = Drawing.new("Line")
-                    l.From = Vector2.new(a.X, a.Y)
-                    l.To = Vector2.new(b.X, b.Y)
-                    l.Color = color
-                    l.Thickness = 1.2
-                    table.insert(drawings, l)
-                end
-            end
-
-            local h = char:FindFirstChild("Head")
-            local t = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
-            local lt = char:FindFirstChild("Left Arm") or char:FindFirstChild("LeftUpperArm")
-            local rt = char:FindFirstChild("Right Arm") or char:FindFirstChild("RightUpperArm")
-            local ll = char:FindFirstChild("Left Leg") or char:FindFirstChild("LeftUpperLeg")
-            local rl = char:FindFirstChild("Right Leg") or char:FindFirstChild("RightUpperLeg")
-
-            if h and t then drawLine(h, t) end
-            if t and lt then drawLine(t, lt) end
-            if t and rt then drawLine(t, rt) end
-            if t and ll then drawLine(t, ll) end
-            if t and rl then drawLine(t, rl) end
-        end
-    end
-end)
-
-print("爪卂́ 卄ㄩ乃 | Aimbot + ESP Completo carregado")
+print("MZ HUB carregado com sucesso!")
