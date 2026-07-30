@@ -1,548 +1,659 @@
--- [[ mz hub - Mobile (Corrigido - Agora aparece) ]]
+-- mz hub - Localizações + Auto Pegar + Auto Farm + Configuração + Minimizar
+-- Delta Executor
 
 local Players = game:GetService("Players")
-local CoreGui = game:GetService("CoreGui")
-local UIS = game:GetService("UserInputService")
-
 local player = Players.LocalPlayer
-
--- Limpa GUI antiga
-pcall(function()
-    local old = (gethui and gethui() or CoreGui):FindFirstChild("mz_hub_GUI")
-    if old then old:Destroy() end
-end)
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
 local savedLocations = {}
-local selectedIndex = nil
-local minimized = false
-local maxSlots = 8
+local savedConfigs = {}
 local autoPegar = false
 local autoFarm = false
-local sellDropdownOpen = false
-local selectedSellType = nil
-local configs = {}
+local selectedLocation = nil
+local selectedButton = nil
 local selectedConfig = nil
+local selectedConfigButton = nil
+local baseCFrame = nil
+local MAX_LOCATIONS = 30
+local FARM_TIME = 8
+local isMinimized = false
 
--- ==================== GUI ====================
+-- Tamanhos
+local NORMAL_SIZE = UDim2.new(0, 290, 0, 500)
+local MINI_SIZE = UDim2.new(0, 200, 0, 40)
+
+-- ==================== GUI PRINCIPAL ====================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "mz_hub_GUI"
+ScreenGui.Name = "mzHubGUI"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.IgnoreGuiInset = true
-ScreenGui.DisplayOrder = 999999
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
--- Proteção + Parent (faz aparecer no Delta Mobile)
-if syn and syn.protect_gui then
-    syn.protect_gui(ScreenGui)
-end
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = NORMAL_SIZE
+MainFrame.Position = UDim2.new(0.5, -145, 0.5, -250)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true -- já dá pra arrastar pra qualquer lado
+MainFrame.Parent = ScreenGui
 
-local parent = gethui and gethui() or CoreGui
-ScreenGui.Parent = parent
-
-local Main = Instance.new("Frame")
-Main.Name = "Main"
-Main.Size = UDim2.new(0, 250, 0, 470)
-Main.Position = UDim2.new(0.03, 0, 0.12, 0)
-Main.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
-Main.BorderSizePixel = 0
-Main.Active = true
-Main.Parent = ScreenGui
-
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 14)
-local stroke = Instance.new("UIStroke", Main)
-stroke.Color = Color3.fromRGB(70, 70, 95)
-stroke.Thickness = 1.5
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainFrame
 
 -- Título
-local TitleBar = Instance.new("Frame")
-TitleBar.Size = UDim2.new(1, 0, 0, 38)
-TitleBar.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
-TitleBar.BorderSizePixel = 0
-TitleBar.Parent = Main
-Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 14)
-
-local TitleFix = Instance.new("Frame")
-TitleFix.Size = UDim2.new(1, 0, 0, 16)
-TitleFix.Position = UDim2.new(0, 0, 1, -16)
-TitleFix.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
-TitleFix.BorderSizePixel = 0
-TitleFix.Parent = TitleBar
-
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -50, 1, 0)
-Title.Position = UDim2.new(0, 14, 0, 0)
-Title.BackgroundTransparency = 1
+Title.Size = UDim2.new(1, -70, 0, 35)
+Title.Position = UDim2.new(0, 0, 0, 0)
+Title.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+Title.Text = "😜 <font color='rgb(255,0,0)'>mz hub</font>"
 Title.RichText = true
-Title.Text = "😜 <font color='#FF2222'>mz hub</font>"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 16
-Title.TextColor3 = Color3.fromRGB(240, 240, 250)
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = TitleBar
+Title.Parent = MainFrame
 
-local MinimizeBtn = Instance.new("TextButton")
-MinimizeBtn.Size = UDim2.new(0, 32, 0, 32)
-MinimizeBtn.Position = UDim2.new(1, -36, 0, 3)
-MinimizeBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 75)
-MinimizeBtn.Text = "–"
-MinimizeBtn.TextColor3 = Color3.fromRGB(240, 240, 250)
-MinimizeBtn.Font = Enum.Font.GothamBold
-MinimizeBtn.TextSize = 18
-MinimizeBtn.Parent = TitleBar
-Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 8)
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 10)
+TitleCorner.Parent = Title
 
--- Conteúdo
+-- Botão Minimizar
+local MinBtn = Instance.new("TextButton")
+MinBtn.Size = UDim2.new(0, 32, 0, 28)
+MinBtn.Position = UDim2.new(1, -70, 0, 3)
+MinBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 100)
+MinBtn.Text = "—"
+MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.TextSize = 18
+MinBtn.Parent = MainFrame
+
+local MinCorner = Instance.new("UICorner")
+MinCorner.CornerRadius = UDim.new(0, 6)
+MinCorner.Parent = MinBtn
+
+-- Botão Fechar (X no título)
+local TitleClose = Instance.new("TextButton")
+TitleClose.Size = UDim2.new(0, 32, 0, 28)
+TitleClose.Position = UDim2.new(1, -35, 0, 3)
+TitleClose.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+TitleClose.Text = "X"
+TitleClose.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleClose.Font = Enum.Font.GothamBold
+TitleClose.TextSize = 14
+TitleClose.Parent = MainFrame
+
+local TitleCloseCorner = Instance.new("UICorner")
+TitleCloseCorner.CornerRadius = UDim.new(0, 6)
+TitleCloseCorner.Parent = TitleClose
+
+-- Container do conteúdo (pra poder esconder quando minimizar)
 local Content = Instance.new("Frame")
-Content.Size = UDim2.new(1, 0, 1, -38)
-Content.Position = UDim2.new(0, 0, 0, 38)
+Content.Size = UDim2.new(1, 0, 1, -40)
+Content.Position = UDim2.new(0, 0, 0, 40)
 Content.BackgroundTransparency = 1
-Content.Parent = Main
+Content.Parent = MainFrame
 
-local function createBtn(text, posY, color)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -20, 0, 34)
-    btn.Position = UDim2.new(0, 10, 0, posY)
-    btn.BackgroundColor3 = color
-    btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.GothamSemibold
-    btn.TextSize = 13
-    btn.Parent = Content
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-    return btn
-end
+-- Botão Salvar Localização
+local SaveBtn = Instance.new("TextButton")
+SaveBtn.Size = UDim2.new(0.9, 0, 0, 28)
+SaveBtn.Position = UDim2.new(0.05, 0, 0, 5)
+SaveBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 100)
+SaveBtn.Text = "💾 Salvar Localização"
+SaveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SaveBtn.Font = Enum.Font.GothamBold
+SaveBtn.TextSize = 13
+SaveBtn.Parent = Content
 
-local SaveBtn = createBtn("💾  Salvar Nova Localização", 8, Color3.fromRGB(40, 115, 195))
-local TPBtn = createBtn("🚀  Teleportar (TP)", 155, Color3.fromRGB(40, 150, 85))
-local AutoBtn = createBtn("🖐  Auto Pegar: OFF", 195, Color3.fromRGB(90, 45, 45))
-local FarmBtn = createBtn("⚡  Auto Farm: OFF", 235, Color3.fromRGB(100, 55, 150))
-local SellDropBtn = createBtn("💰  Vender  ▼", 275, Color3.fromRGB(170, 95, 30))
-local ConfigBtn = createBtn("⚙️  Configuração", 350, Color3.fromRGB(50, 50, 70))
+local SaveCorner = Instance.new("UICorner")
+SaveCorner.CornerRadius = UDim.new(0, 6)
+SaveCorner.Parent = SaveBtn
 
--- Lista
-local ListFrame = Instance.new("ScrollingFrame")
-ListFrame.Size = UDim2.new(1, -20, 0, 100)
-ListFrame.Position = UDim2.new(0, 10, 0, 48)
-ListFrame.BackgroundColor3 = Color3.fromRGB(26, 26, 35)
-ListFrame.BorderSizePixel = 0
-ListFrame.ScrollBarThickness = 5
-ListFrame.ScrollBarImageColor3 = Color3.fromRGB(120, 120, 160)
-ListFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-ListFrame.ScrollingEnabled = true
-ListFrame.Parent = Content
-Instance.new("UICorner", ListFrame).CornerRadius = UDim.new(0, 8)
+-- Botão Salvar Base
+local BaseBtn = Instance.new("TextButton")
+BaseBtn.Size = UDim2.new(0.9, 0, 0, 28)
+BaseBtn.Position = UDim2.new(0.05, 0, 0, 38)
+BaseBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 200)
+BaseBtn.Text = "🏠 Salvar Base"
+BaseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+BaseBtn.Font = Enum.Font.GothamBold
+BaseBtn.TextSize = 13
+BaseBtn.Parent = Content
 
-local ListLayout = Instance.new("UIListLayout", ListFrame)
-ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-ListLayout.Padding = UDim.new(0, 5)
+local BaseCorner = Instance.new("UICorner")
+BaseCorner.CornerRadius = UDim.new(0, 6)
+BaseCorner.Parent = BaseBtn
 
-local ListPad = Instance.new("UIPadding", ListFrame)
-ListPad.PaddingTop = UDim.new(0, 6)
-ListPad.PaddingBottom = UDim.new(0, 6)
-ListPad.PaddingLeft = UDim.new(0, 6)
-ListPad.PaddingRight = UDim.new(0, 6)
+-- ScrollingFrame da lista de localizações
+local ScrollingFrame = Instance.new("ScrollingFrame")
+ScrollingFrame.Size = UDim2.new(0.9, 0, 0, 120)
+ScrollingFrame.Position = UDim2.new(0.05, 0, 0, 72)
+ScrollingFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+ScrollingFrame.BorderSizePixel = 0
+ScrollingFrame.ScrollBarThickness = 4
+ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ScrollingFrame.Parent = Content
 
--- Dropdown Vender
-local DropFrame = Instance.new("Frame")
-DropFrame.Size = UDim2.new(1, -20, 0, 72)
-DropFrame.Position = UDim2.new(0, 10, 0, 313)
-DropFrame.BackgroundColor3 = Color3.fromRGB(32, 32, 42)
-DropFrame.BorderSizePixel = 0
-DropFrame.Visible = false
-DropFrame.Parent = Content
-Instance.new("UICorner", DropFrame).CornerRadius = UDim.new(0, 8)
+local ScrollCorner = Instance.new("UICorner")
+ScrollCorner.CornerRadius = UDim.new(0, 6)
+ScrollCorner.Parent = ScrollingFrame
 
-local Opt1 = Instance.new("TextButton")
-Opt1.Size = UDim2.new(1, -10, 0, 28)
-Opt1.Position = UDim2.new(0, 5, 0, 6)
-Opt1.BackgroundColor3 = Color3.fromRGB(55, 55, 75)
-Opt1.Text = "1. Vender Equipado"
-Opt1.TextColor3 = Color3.fromRGB(240, 240, 250)
-Opt1.Font = Enum.Font.Gotham
-Opt1.TextSize = 13
-Opt1.Parent = DropFrame
-Instance.new("UICorner", Opt1).CornerRadius = UDim.new(0, 6)
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 5)
+UIListLayout.Parent = ScrollingFrame
 
-local Opt2 = Instance.new("TextButton")
-Opt2.Size = UDim2.new(1, -10, 0, 28)
-Opt2.Position = UDim2.new(0, 5, 0, 38)
-Opt2.BackgroundColor3 = Color3.fromRGB(55, 55, 75)
-Opt2.Text = "2. Vender Inventário"
-Opt2.TextColor3 = Color3.fromRGB(240, 240, 250)
-Opt2.Font = Enum.Font.Gotham
-Opt2.TextSize = 13
-Opt2.Parent = DropFrame
-Instance.new("UICorner", Opt2).CornerRadius = UDim.new(0, 6)
+-- Botão Teleportar
+local TPBtn = Instance.new("TextButton")
+TPBtn.Size = UDim2.new(0.9, 0, 0, 30)
+TPBtn.Position = UDim2.new(0.05, 0, 0, 200)
+TPBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+TPBtn.Text = "🚀 TP para Selecionada"
+TPBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TPBtn.Font = Enum.Font.GothamBold
+TPBtn.TextSize = 13
+TPBtn.Parent = Content
 
-local ConfirmSellBtn = Instance.new("TextButton")
-ConfirmSellBtn.Size = UDim2.new(1, -20, 0, 34)
-ConfirmSellBtn.Position = UDim2.new(0, 10, 0, 313)
-ConfirmSellBtn.BackgroundColor3 = Color3.fromRGB(180, 45, 45)
-ConfirmSellBtn.Text = "💰  VENDER AGORA"
-ConfirmSellBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-ConfirmSellBtn.Font = Enum.Font.GothamBold
-ConfirmSellBtn.TextSize = 13
-ConfirmSellBtn.Visible = false
-ConfirmSellBtn.Parent = Content
-Instance.new("UICorner", ConfirmSellBtn).CornerRadius = UDim.new(0, 8)
+local TPCorner = Instance.new("UICorner")
+TPCorner.CornerRadius = UDim.new(0, 6)
+TPCorner.Parent = TPBtn
 
--- Status
-local Status = Instance.new("TextLabel")
-Status.Size = UDim2.new(1, -20, 0, 18)
-Status.Position = UDim2.new(0, 10, 0, 392)
-Status.BackgroundTransparency = 1
-Status.Text = "Pronto - Mobile"
-Status.TextColor3 = Color3.fromRGB(150, 150, 170)
-Status.Font = Enum.Font.Gotham
-Status.TextSize = 12
-Status.Parent = Content
+-- Botão Auto Pegar
+local AutoPegarBtn = Instance.new("TextButton")
+AutoPegarBtn.Size = UDim2.new(0.9, 0, 0, 30)
+AutoPegarBtn.Position = UDim2.new(0.05, 0, 0, 235)
+AutoPegarBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+AutoPegarBtn.Text = "🖐 Auto Pegar: OFF"
+AutoPegarBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+AutoPegarBtn.Font = Enum.Font.GothamBold
+AutoPegarBtn.TextSize = 13
+AutoPegarBtn.Parent = Content
 
--- ==================== PAINEL CONFIG ====================
+local AutoCorner = Instance.new("UICorner")
+AutoCorner.CornerRadius = UDim.new(0, 6)
+AutoCorner.Parent = AutoPegarBtn
+
+-- Botão Auto Farm
+local AutoFarmBtn = Instance.new("TextButton")
+AutoFarmBtn.Size = UDim2.new(0.9, 0, 0, 30)
+AutoFarmBtn.Position = UDim2.new(0.05, 0, 0, 270)
+AutoFarmBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+AutoFarmBtn.Text = "⚡ Auto Farm: OFF"
+AutoFarmBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+AutoFarmBtn.Font = Enum.Font.GothamBold
+AutoFarmBtn.TextSize = 13
+AutoFarmBtn.Parent = Content
+
+local FarmCorner = Instance.new("UICorner")
+FarmCorner.CornerRadius = UDim.new(0, 6)
+FarmCorner.Parent = AutoFarmBtn
+
+-- Botão Configuração
+local ConfigBtn = Instance.new("TextButton")
+ConfigBtn.Size = UDim2.new(0.9, 0, 0, 30)
+ConfigBtn.Position = UDim2.new(0.05, 0, 0, 305)
+ConfigBtn.BackgroundColor3 = Color3.fromRGB(120, 60, 180)
+ConfigBtn.Text = "⚙️ Configuração"
+ConfigBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ConfigBtn.Font = Enum.Font.GothamBold
+ConfigBtn.TextSize = 13
+ConfigBtn.Parent = Content
+
+local ConfigCorner = Instance.new("UICorner")
+ConfigCorner.CornerRadius = UDim.new(0, 6)
+ConfigCorner.Parent = ConfigBtn
+
+-- Botão Fechar (dentro do content)
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0.9, 0, 0, 28)
+CloseBtn.Position = UDim2.new(0.05, 0, 0, 340)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+CloseBtn.Text = "❌ Fechar"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 13
+CloseBtn.Parent = Content
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 6)
+CloseCorner.Parent = CloseBtn
+
+-- ==================== PAINEL DE CONFIGURAÇÃO ====================
 local ConfigOverlay = Instance.new("Frame")
 ConfigOverlay.Size = UDim2.new(1, 0, 1, 0)
 ConfigOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-ConfigOverlay.BackgroundTransparency = 0.3
+ConfigOverlay.BackgroundTransparency = 0.35
 ConfigOverlay.Visible = false
 ConfigOverlay.Parent = ScreenGui
 
 local ConfigPanel = Instance.new("Frame")
-ConfigPanel.Size = UDim2.new(0, 290, 0, 380)
-ConfigPanel.Position = UDim2.new(0.5, -145, 0.5, -190)
-ConfigPanel.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+ConfigPanel.Size = UDim2.new(0, 300, 0, 380)
+ConfigPanel.Position = UDim2.new(0.5, -150, 0.5, -190)
+ConfigPanel.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 ConfigPanel.BorderSizePixel = 0
 ConfigPanel.Parent = ConfigOverlay
-Instance.new("UICorner", ConfigPanel).CornerRadius = UDim.new(0, 14)
 
-local ConfigStroke = Instance.new("UIStroke", ConfigPanel)
-ConfigStroke.Color = Color3.fromRGB(90, 90, 120)
-ConfigStroke.Thickness = 1.5
+local ConfigPanelCorner = Instance.new("UICorner")
+ConfigPanelCorner.CornerRadius = UDim.new(0, 12)
+ConfigPanelCorner.Parent = ConfigPanel
 
 local ConfigTitle = Instance.new("TextLabel")
-ConfigTitle.Size = UDim2.new(1, -50, 0, 40)
-ConfigTitle.Position = UDim2.new(0, 14, 0, 6)
-ConfigTitle.BackgroundTransparency = 1
-ConfigTitle.Text = "⚙️  Configuração"
+ConfigTitle.Size = UDim2.new(1, 0, 0, 40)
+ConfigTitle.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+ConfigTitle.Text = "configuração"
+ConfigTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 ConfigTitle.Font = Enum.Font.GothamBold
-ConfigTitle.TextSize = 17
-ConfigTitle.TextColor3 = Color3.fromRGB(240, 240, 255)
-ConfigTitle.TextXAlignment = Enum.TextXAlignment.Left
+ConfigTitle.TextSize = 18
 ConfigTitle.Parent = ConfigPanel
 
-local CloseConfig = Instance.new("TextButton")
-CloseConfig.Size = UDim2.new(0, 32, 0, 32)
-CloseConfig.Position = UDim2.new(1, -40, 0, 8)
-CloseConfig.BackgroundColor3 = Color3.fromRGB(170, 40, 40)
-CloseConfig.Text = "X"
-CloseConfig.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseConfig.Font = Enum.Font.GothamBold
-CloseConfig.TextSize = 16
-CloseConfig.Parent = ConfigPanel
-Instance.new("UICorner", CloseConfig).CornerRadius = UDim.new(0, 8)
+local ConfigTitleCorner = Instance.new("UICorner")
+ConfigTitleCorner.CornerRadius = UDim.new(0, 12)
+ConfigTitleCorner.Parent = ConfigTitle
 
-local ConfigList = Instance.new("ScrollingFrame")
-ConfigList.Size = UDim2.new(1, -20, 0, 210)
-ConfigList.Position = UDim2.new(0, 10, 0, 55)
-ConfigList.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-ConfigList.BorderSizePixel = 0
-ConfigList.ScrollBarThickness = 5
-ConfigList.AutomaticCanvasSize = Enum.AutomaticSize.Y
-ConfigList.Parent = ConfigPanel
-Instance.new("UICorner", ConfigList).CornerRadius = UDim.new(0, 8)
+local ConfigClose = Instance.new("TextButton")
+ConfigClose.Size = UDim2.new(0, 32, 0, 32)
+ConfigClose.Position = UDim2.new(1, -38, 0, 4)
+ConfigClose.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+ConfigClose.Text = "X"
+ConfigClose.TextColor3 = Color3.fromRGB(255, 255, 255)
+ConfigClose.Font = Enum.Font.GothamBold
+ConfigClose.TextSize = 16
+ConfigClose.Parent = ConfigPanel
 
-local ConfigListLayout = Instance.new("UIListLayout", ConfigList)
+local ConfigCloseCorner = Instance.new("UICorner")
+ConfigCloseCorner.CornerRadius = UDim.new(0, 6)
+ConfigCloseCorner.Parent = ConfigClose
+
+local ConfigScroll = Instance.new("ScrollingFrame")
+ConfigScroll.Size = UDim2.new(0.9, 0, 0, 180)
+ConfigScroll.Position = UDim2.new(0.05, 0, 0, 55)
+ConfigScroll.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+ConfigScroll.BorderSizePixel = 0
+ConfigScroll.ScrollBarThickness = 4
+ConfigScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+ConfigScroll.Parent = ConfigPanel
+
+local ConfigScrollCorner = Instance.new("UICorner")
+ConfigScrollCorner.CornerRadius = UDim.new(0, 6)
+ConfigScrollCorner.Parent = ConfigScroll
+
+local ConfigListLayout = Instance.new("UIListLayout")
 ConfigListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-ConfigListLayout.Padding = UDim.new(0, 6)
-
-local ConfigListPad = Instance.new("UIPadding", ConfigList)
-ConfigListPad.PaddingTop = UDim.new(0, 6)
-ConfigListPad.PaddingBottom = UDim.new(0, 6)
-ConfigListPad.PaddingLeft = UDim.new(0, 6)
-ConfigListPad.PaddingRight = UDim.new(0, 6)
+ConfigListLayout.Padding = UDim.new(0, 5)
+ConfigListLayout.Parent = ConfigScroll
 
 local SaveConfigBtn = Instance.new("TextButton")
-SaveConfigBtn.Size = UDim2.new(0.46, 0, 0, 38)
-SaveConfigBtn.Position = UDim2.new(0, 10, 0, 280)
-SaveConfigBtn.BackgroundColor3 = Color3.fromRGB(40, 130, 80)
-SaveConfigBtn.Text = "💾  Salvar"
+SaveConfigBtn.Size = UDim2.new(0.9, 0, 0, 36)
+SaveConfigBtn.Position = UDim2.new(0.05, 0, 0, 250)
+SaveConfigBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 100)
+SaveConfigBtn.Text = "💾 Salvar Configuração"
 SaveConfigBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-SaveConfigBtn.Font = Enum.Font.GothamSemibold
+SaveConfigBtn.Font = Enum.Font.GothamBold
 SaveConfigBtn.TextSize = 14
 SaveConfigBtn.Parent = ConfigPanel
-Instance.new("UICorner", SaveConfigBtn).CornerRadius = UDim.new(0, 8)
+
+local SaveConfigCorner = Instance.new("UICorner")
+SaveConfigCorner.CornerRadius = UDim.new(0, 6)
+SaveConfigCorner.Parent = SaveConfigBtn
 
 local ExecConfigBtn = Instance.new("TextButton")
-ExecConfigBtn.Size = UDim2.new(0.46, 0, 0, 38)
-ExecConfigBtn.Position = UDim2.new(0.54, 0, 0, 280)
-ExecConfigBtn.BackgroundColor3 = Color3.fromRGB(40, 110, 190)
-ExecConfigBtn.Text = "▶️  Executar"
+ExecConfigBtn.Size = UDim2.new(0.9, 0, 0, 36)
+ExecConfigBtn.Position = UDim2.new(0.05, 0, 0, 295)
+ExecConfigBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+ExecConfigBtn.Text = "▶️ Executar Configuração"
 ExecConfigBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-ExecConfigBtn.Font = Enum.Font.GothamSemibold
+ExecConfigBtn.Font = Enum.Font.GothamBold
 ExecConfigBtn.TextSize = 14
 ExecConfigBtn.Parent = ConfigPanel
-Instance.new("UICorner", ExecConfigBtn).CornerRadius = UDim.new(0, 8)
 
-local ConfigStatus = Instance.new("TextLabel")
-ConfigStatus.Size = UDim2.new(1, -20, 0, 22)
-ConfigStatus.Position = UDim2.new(0, 10, 0, 330)
-ConfigStatus.BackgroundTransparency = 1
-ConfigStatus.Text = "Nenhuma config selecionada"
-ConfigStatus.TextColor3 = Color3.fromRGB(160, 160, 180)
-ConfigStatus.Font = Enum.Font.Gotham
-ConfigStatus.TextSize = 12
-ConfigStatus.Parent = ConfigPanel
+local ExecConfigCorner = Instance.new("UICorner")
+ExecConfigCorner.CornerRadius = UDim.new(0, 6)
+ExecConfigCorner.Parent = ExecConfigBtn
 
 -- ==================== FUNÇÕES ====================
-local function getHRP()
-    local char = player.Character
-    if not char then return nil end
-    return char:FindFirstChild("HumanoidRootPart")
+
+local function updateList()
+	for _, child in pairs(ScrollingFrame:GetChildren()) do
+		if child:IsA("Frame") then
+			child:Destroy()
+		end
+	end
+
+	for i, loc in ipairs(savedLocations) do
+		local ItemFrame = Instance.new("Frame")
+		ItemFrame.Size = UDim2.new(1, -8, 0, 30)
+		ItemFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+		ItemFrame.BorderSizePixel = 0
+		ItemFrame.LayoutOrder = i
+		ItemFrame.Parent = ScrollingFrame
+
+		local ItemCorner = Instance.new("UICorner")
+		ItemCorner.CornerRadius = UDim.new(0, 5)
+		ItemCorner.Parent = ItemFrame
+
+		local LocBtn = Instance.new("TextButton")
+		LocBtn.Size = UDim2.new(1, -36, 1, 0)
+		LocBtn.BackgroundTransparency = 1
+		LocBtn.Text = "  📍 Localização " .. i
+		LocBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
+		LocBtn.Font = Enum.Font.Gotham
+		LocBtn.TextSize = 13
+		LocBtn.TextXAlignment = Enum.TextXAlignment.Left
+		LocBtn.Parent = ItemFrame
+
+		local DeleteBtn = Instance.new("TextButton")
+		DeleteBtn.Size = UDim2.new(0, 28, 0, 24)
+		DeleteBtn.Position = UDim2.new(1, -32, 0.5, -12)
+		DeleteBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+		DeleteBtn.Text = "X"
+		DeleteBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+		DeleteBtn.Font = Enum.Font.GothamBold
+		DeleteBtn.TextSize = 12
+		DeleteBtn.Parent = ItemFrame
+
+		local DeleteCorner = Instance.new("UICorner")
+		DeleteCorner.CornerRadius = UDim.new(0, 4)
+		DeleteCorner.Parent = DeleteBtn
+
+		LocBtn.MouseButton1Click:Connect(function()
+			selectedLocation = loc
+			if selectedButton then
+				selectedButton.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+			end
+			ItemFrame.BackgroundColor3 = Color3.fromRGB(0, 140, 255)
+			selectedButton = ItemFrame
+		end)
+
+		DeleteBtn.MouseButton1Click:Connect(function()
+			table.remove(savedLocations, i)
+			if selectedLocation == loc then
+				selectedLocation = nil
+				selectedButton = nil
+			end
+			updateList()
+		end)
+	end
+
+	ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, #savedLocations * 35)
 end
 
-local function refreshList()
-    for _, c in ipairs(ListFrame:GetChildren()) do
-        if c:IsA("Frame") then c:Destroy() end
-    end
-    for i, data in ipairs(savedLocations) do
-        local item = Instance.new("Frame")
-        item.Size = UDim2.new(1, -4, 0, 32)
-        item.BackgroundColor3 = (selectedIndex == i) and Color3.fromRGB(35, 95, 55) or Color3.fromRGB(40, 40, 55)
-        item.BorderSizePixel = 0
-        item.LayoutOrder = i
-        item.Parent = ListFrame
-        Instance.new("UICorner", item).CornerRadius = UDim.new(0, 7)
+local function updateConfigList()
+	for _, child in pairs(ConfigScroll:GetChildren()) do
+		if child:IsA("Frame") then
+			child:Destroy()
+		end
+	end
 
-        local selectBtn = Instance.new("TextButton")
-        selectBtn.Size = UDim2.new(1, -40, 1, 0)
-        selectBtn.BackgroundTransparency = 1
-        selectBtn.Text = (selectedIndex == i and "🟢 " or "⚪ ") .. data.name
-        selectBtn.TextColor3 = (selectedIndex == i) and Color3.fromRGB(160, 255, 180) or Color3.fromRGB(220, 220, 235)
-        selectBtn.Font = Enum.Font.Gotham
-        selectBtn.TextSize = 13
-        selectBtn.TextXAlignment = Enum.TextXAlignment.Left
-        selectBtn.Parent = item
-        local pad = Instance.new("UIPadding", selectBtn)
-        pad.PaddingLeft = UDim.new(0, 10)
+	for i, cfg in ipairs(savedConfigs) do
+		local ItemFrame = Instance.new("Frame")
+		ItemFrame.Size = UDim2.new(1, -8, 0, 32)
+		ItemFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+		ItemFrame.BorderSizePixel = 0
+		ItemFrame.LayoutOrder = i
+		ItemFrame.Parent = ConfigScroll
 
-        local delBtn = Instance.new("TextButton")
-        delBtn.Size = UDim2.new(0, 30, 0, 26)
-        delBtn.Position = UDim2.new(1, -34, 0.5, -13)
-        delBtn.BackgroundColor3 = Color3.fromRGB(170, 40, 40)
-        delBtn.Text = "X"
-        delBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        delBtn.Font = Enum.Font.GothamBold
-        delBtn.TextSize = 13
-        delBtn.Parent = item
-        Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 6)
+		local ItemCorner = Instance.new("UICorner")
+		ItemCorner.CornerRadius = UDim.new(0, 5)
+		ItemCorner.Parent = ItemFrame
 
-        selectBtn.MouseButton1Click:Connect(function()
-            selectedIndex = i
-            refreshList()
-            Status.Text = "Selecionado: " .. data.name
-            Status.TextColor3 = Color3.fromRGB(120, 220, 150)
-        end)
+		local CfgBtn = Instance.new("TextButton")
+		CfgBtn.Size = UDim2.new(1, -36, 1, 0)
+		CfgBtn.BackgroundTransparency = 1
+		CfgBtn.Text = "  📁 Configuração " .. i
+		CfgBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
+		CfgBtn.Font = Enum.Font.Gotham
+		CfgBtn.TextSize = 13
+		CfgBtn.TextXAlignment = Enum.TextXAlignment.Left
+		CfgBtn.Parent = ItemFrame
 
-        delBtn.MouseButton1Click:Connect(function()
-            table.remove(savedLocations, i)
-            if selectedIndex == i then
-                selectedIndex = nil
-                Status.Text = "Nenhuma localização"
-                Status.TextColor3 = Color3.fromRGB(160, 160, 180)
-            elseif selectedIndex and selectedIndex > i then
-                selectedIndex = selectedIndex - 1
-            end
-            refreshList()
-        end)
-    end
+		local DeleteBtn = Instance.new("TextButton")
+		DeleteBtn.Size = UDim2.new(0, 28, 0, 24)
+		DeleteBtn.Position = UDim2.new(1, -32, 0.5, -12)
+		DeleteBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+		DeleteBtn.Text = "X"
+		DeleteBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+		DeleteBtn.Font = Enum.Font.GothamBold
+		DeleteBtn.TextSize = 12
+		DeleteBtn.Parent = ItemFrame
+
+		local DeleteCorner = Instance.new("UICorner")
+		DeleteCorner.CornerRadius = UDim.new(0, 4)
+		DeleteCorner.Parent = DeleteBtn
+
+		CfgBtn.MouseButton1Click:Connect(function()
+			selectedConfig = cfg
+			if selectedConfigButton then
+				selectedConfigButton.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+			end
+			ItemFrame.BackgroundColor3 = Color3.fromRGB(0, 140, 255)
+			selectedConfigButton = ItemFrame
+		end)
+
+		DeleteBtn.MouseButton1Click:Connect(function()
+			table.remove(savedConfigs, i)
+			if selectedConfig == cfg then
+				selectedConfig = nil
+				selectedConfigButton = nil
+			end
+			updateConfigList()
+		end)
+	end
+
+	ConfigScroll.CanvasSize = UDim2.new(0, 0, 0, #savedConfigs * 37)
 end
 
-local function refreshConfigList()
-    for _, c in ipairs(ConfigList:GetChildren()) do
-        if c:IsA("Frame") then c:Destroy() end
-    end
-    for i, cfg in ipairs(configs) do
-        local item = Instance.new("Frame")
-        item.Size = UDim2.new(1, -4, 0, 34)
-        item.BackgroundColor3 = (selectedConfig == i) and Color3.fromRGB(40, 90, 140) or Color3.fromRGB(42, 42, 58)
-        item.BorderSizePixel = 0
-        item.LayoutOrder = i
-        item.Parent = ConfigList
-        Instance.new("UICorner", item).CornerRadius = UDim.new(0, 7)
-
-        local selectBtn = Instance.new("TextButton")
-        selectBtn.Size = UDim2.new(1, -40, 1, 0)
-        selectBtn.BackgroundTransparency = 1
-        selectBtn.Text = (selectedConfig == i and "🟢 " or "⚪ ") .. cfg.name
-        selectBtn.TextColor3 = Color3.fromRGB(230, 230, 245)
-        selectBtn.Font = Enum.Font.Gotham
-        selectBtn.TextSize = 13
-        selectBtn.TextXAlignment = Enum.TextXAlignment.Left
-        selectBtn.Parent = item
-        local pad = Instance.new("UIPadding", selectBtn)
-        pad.PaddingLeft = UDim.new(0, 10)
-
-        local delBtn = Instance.new("TextButton")
-        delBtn.Size = UDim2.new(0, 30, 0, 26)
-        delBtn.Position = UDim2.new(1, -34, 0.5, -13)
-        delBtn.BackgroundColor3 = Color3.fromRGB(170, 40, 40)
-        delBtn.Text = "X"
-        delBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        delBtn.Font = Enum.Font.GothamBold
-        delBtn.TextSize = 13
-        delBtn.Parent = item
-        Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 6)
-
-        selectBtn.MouseButton1Click:Connect(function()
-            selectedConfig = i
-            refreshConfigList()
-            ConfigStatus.Text = "Selecionado: " .. cfg.name
-            ConfigStatus.TextColor3 = Color3.fromRGB(120, 200, 255)
-        end)
-
-        delBtn.MouseButton1Click:Connect(function()
-            table.remove(configs, i)
-            if selectedConfig == i then
-                selectedConfig = nil
-                ConfigStatus.Text = "Nenhuma config selecionada"
-                ConfigStatus.TextColor3 = Color3.fromRGB(160, 160, 180)
-            elseif selectedConfig and selectedConfig > i then
-                selectedConfig = selectedConfig - 1
-            end
-            refreshConfigList()
-        end)
-    end
-end
-
--- Arrastar
-local dragging, dragStart, startPos
-TitleBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = Main.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
+-- Minimizar / Restaurar
+MinBtn.MouseButton1Click:Connect(function()
+	isMinimized = not isMinimized
+	if isMinimized then
+		Content.Visible = false
+		MainFrame.Size = MINI_SIZE
+		MinBtn.Text = "+"
+		Title.Size = UDim2.new(1, -70, 1, 0)
+	else
+		Content.Visible = true
+		MainFrame.Size = NORMAL_SIZE
+		MinBtn.Text = "—"
+		Title.Size = UDim2.new(1, -70, 0, 35)
+	end
 end)
 
-UIS.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-
--- Minimizar
-MinimizeBtn.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    Content.Visible = not minimized
-    Main.Size = minimized and UDim2.new(0, 250, 0, 38) or UDim2.new(0, 250, 0, 470)
-    MinimizeBtn.Text = minimized and "+" or "–"
-end)
-
--- Salvar Local
+-- Salvar localização
 SaveBtn.MouseButton1Click:Connect(function()
-    if #savedLocations >= maxSlots then
-        Status.Text = "Máximo de locais atingido!"
-        Status.TextColor3 = Color3.fromRGB(255, 100, 100)
-        return
-    end
-    local hrp = getHRP()
-    if not hrp then return end
-    local num = #savedLocations + 1
-    table.insert(savedLocations, {name = "Local " .. num, cframe = hrp.CFrame})
-    selectedIndex = num
-    refreshList()
-    Status.Text = "Salvo: Local " .. num
-    Status.TextColor3 = Color3.fromRGB(120, 220, 150)
+	if #savedLocations >= MAX_LOCATIONS then
+		SaveBtn.Text = "❌ Máximo " .. MAX_LOCATIONS .. "!"
+		task.wait(1.5)
+		SaveBtn.Text = "💾 Salvar Localização"
+		return
+	end
+
+	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		table.insert(savedLocations, {
+			Position = hrp.Position,
+			CFrame = hrp.CFrame
+		})
+		updateList()
+		SaveBtn.Text = "✅ Salvo! (" .. #savedLocations .. "/" .. MAX_LOCATIONS .. ")"
+		task.wait(1)
+		SaveBtn.Text = "💾 Salvar Localização"
+	end
 end)
 
--- TP
+-- Salvar Base
+BaseBtn.MouseButton1Click:Connect(function()
+	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		baseCFrame = hrp.CFrame
+		BaseBtn.Text = "✅ Base Salva!"
+		task.wait(1.2)
+		BaseBtn.Text = "🏠 Salvar Base"
+	end
+end)
+
+-- Teleportar
 TPBtn.MouseButton1Click:Connect(function()
-    if not selectedIndex or not savedLocations[selectedIndex] then
-        Status.Text = "Selecione um local primeiro!"
-        Status.TextColor3 = Color3.fromRGB(255, 100, 100)
-        return
-    end
-    local hrp = getHRP()
-    if hrp then
-        hrp.CFrame = savedLocations[selectedIndex].cframe
-        Status.Text = "Teleportado!"
-        Status.TextColor3 = Color3.fromRGB(100, 180, 255)
-    end
+	if not selectedLocation then
+		TPBtn.Text = "⚠️ Selecione uma localização!"
+		task.wait(1.5)
+		TPBtn.Text = "🚀 TP para Selecionada"
+		return
+	end
+
+	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		hrp.CFrame = selectedLocation.CFrame
+		TPBtn.Text = "✅ Teleportado!"
+		task.wait(1)
+		TPBtn.Text = "🚀 TP para Selecionada"
+	end
 end)
 
 -- Auto Pegar
-AutoBtn.MouseButton1Click:Connect(function()
-    autoPegar = not autoPegar
-    AutoBtn.Text = autoPegar and "🖐  Auto Pegar: ON" or "🖐  Auto Pegar: OFF"
-    AutoBtn.BackgroundColor3 = autoPegar and Color3.fromRGB(40, 140, 70) or Color3.fromRGB(90, 45, 45)
+AutoPegarBtn.MouseButton1Click:Connect(function()
+	autoPegar = not autoPegar
+	if autoPegar then
+		AutoPegarBtn.Text = "🖐 Auto Pegar: ON"
+		AutoPegarBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 80)
+	else
+		AutoPegarBtn.Text = "🖐 Auto Pegar: OFF"
+		AutoPegarBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+	end
 end)
 
 -- Auto Farm
-FarmBtn.MouseButton1Click:Connect(function()
-    if not selectedIndex or not savedLocations[selectedIndex] then
-        Status.Text = "Selecione o local de farm!"
-        Status.TextColor3 = Color3.fromRGB(255, 100, 100)
-        return
-    end
-    autoFarm = not autoFarm
-    FarmBtn.Text = autoFarm and "⚡  Auto Farm: ON" or "⚡  Auto Farm: OFF"
-    FarmBtn.BackgroundColor3 = autoFarm and Color3.fromRGB(130, 70, 190) or Color3.fromRGB(100, 55, 150)
+AutoFarmBtn.MouseButton1Click:Connect(function()
+	if not selectedLocation then
+		AutoFarmBtn.Text = "⚠️ Selecione um local!"
+		task.wait(1.5)
+		AutoFarmBtn.Text = "⚡ Auto Farm: OFF"
+		return
+	end
+	if not baseCFrame then
+		AutoFarmBtn.Text = "⚠️ Salve a Base primeiro!"
+		task.wait(1.5)
+		AutoFarmBtn.Text = "⚡ Auto Farm: OFF"
+		return
+	end
 
-    if autoFarm then
-        autoPegar = true
-        AutoBtn.Text = "🖐  Auto Pegar: ON"
-        AutoBtn.BackgroundColor3 = Color3.fromRGB(40, 140, 70)
-        Status.Text = "Auto Farm ligado!"
-        Status.TextColor3 = Color3.fromRGB(180, 130, 255)
-    else
-        Status.Text = "Auto Farm desligado"
-        Status.TextColor3 = Color3.fromRGB(200, 150, 150)
-    end
+	autoFarm = not autoFarm
+	if autoFarm then
+		AutoFarmBtn.Text = "⚡ Auto Farm: ON"
+		AutoFarmBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 80)
+		autoPegar = true
+		AutoPegarBtn.Text = "🖐 Auto Pegar: ON"
+		AutoPegarBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 80)
+	else
+		AutoFarmBtn.Text = "⚡ Auto Farm: OFF"
+		AutoFarmBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+		autoPegar = false
+		AutoPegarBtn.Text = "🖐 Auto Pegar: OFF"
+		AutoPegarBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+	end
+end)
+
+-- Abrir painel de configuração
+ConfigBtn.MouseButton1Click:Connect(function()
+	ConfigOverlay.Visible = true
+	updateConfigList()
+end)
+
+-- Fechar painel de configuração
+ConfigClose.MouseButton1Click:Connect(function()
+	ConfigOverlay.Visible = false
+end)
+
+-- Salvar Configuração
+SaveConfigBtn.MouseButton1Click:Connect(function()
+	if #savedLocations == 0 and not baseCFrame then
+		SaveConfigBtn.Text = "⚠️ Nada pra salvar!"
+		task.wait(1.5)
+		SaveConfigBtn.Text = "💾 Salvar Configuração"
+		return
+	end
+
+	local locsCopy = {}
+	for _, loc in ipairs(savedLocations) do
+		table.insert(locsCopy, {
+			Position = loc.Position,
+			CFrame = loc.CFrame
+		})
+	end
+
+	table.insert(savedConfigs, {
+		locations = locsCopy,
+		base = baseCFrame
+	})
+
+	updateConfigList()
+	SaveConfigBtn.Text = "✅ Configuração Salva!"
+	task.wait(1.2)
+	SaveConfigBtn.Text = "💾 Salvar Configuração"
+end)
+
+-- Executar Configuração
+ExecConfigBtn.MouseButton1Click:Connect(function()
+	if not selectedConfig then
+		ExecConfigBtn.Text = "⚠️ Selecione uma config!"
+		task.wait(1.5)
+		ExecConfigBtn.Text = "▶️ Executar Configuração"
+		return
+	end
+
+	savedLocations = {}
+	for _, loc in ipairs(selectedConfig.locations) do
+		table.insert(savedLocations, {
+			Position = loc.Position,
+			CFrame = loc.CFrame
+		})
+	end
+	baseCFrame = selectedConfig.base
+
+	selectedLocation = nil
+	selectedButton = nil
+	updateList()
+
+	ExecConfigBtn.Text = "✅ Configuração Carregada!"
+	task.wait(1.2)
+	ExecConfigBtn.Text = "▶️ Executar Configuração"
+	ConfigOverlay.Visible = false
+end)
+
+-- Loop Auto Pegar
+task.spawn(function()
+	while true do
+		if autoPegar then
+			for _, prompt in pairs(workspace:GetDescendants()) do
+				if prompt:IsA("ProximityPrompt") and prompt.Enabled then
+					pcall(function()
+						fireproximityprompt(prompt)
+					end)
+				end
+			end
+		end
+		task.wait(0.12)
+	end
 end)
 
 -- Loop Auto Farm
 task.spawn(function()
-    while true do
-        if autoFarm and selectedIndex and savedLocations[selectedIndex] then
-            local hrp = getHRP()
-            if hrp then
-                hrp.CFrame = savedLocations[selectedIndex].cframe
-                task.wait(7)
-                if savedLocations[1] then
-                    hrp.CFrame = savedLocations[1].cframe
-                    task.wait(2.5)
-                end
-            end
-        end
-        task.wait(0.4)
-    end
+	while true do
+		if autoFarm and selectedLocation and baseCFrame then
+			local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+			if hrp then
+				hrp.CFrame = selectedLocation.CFrame
+				task.wait(0.4)
+				autoPegar = true
+				task.wait(FARM_TIME)
+				hrp.CFrame = baseCFrame
+				task.wait(1.5)
+			end
+		else
+			task.wait(0.5)
+		end
+	end
 end)
 
--- Vender
-SellDropBtn.MouseButton1Click:Connect(function()
-    sellDropdownOpen = not sellDropdownOpen
-    DropFrame.Visible = sellDropdownOpen
-    ConfirmSellBtn.Visible = false
-    selectedSellType = nil
-    SellDropBtn.Text = sellDropdownOpen and "💰  Vender  ▲" or "💰  Vender  ▼"
-end)
-
-Opt1.MouseButton1Click:Connect(function()
-    selectedSellType = "equipado"
-    DropFrame.Visible = false
-    sellDropdownOpen = false
-    SellDropBtn.Text = "💰  Vender Equipado ▼"
-    ConfirmSellBtn.Visible = true
-    Status.Text = "Modo: Vender Equipado"
-    Status.TextColor3 = Color3.fromRGB(255, 180, 80)
-end)
-
-Opt2.MouseButton1Click:Connect(function()
-    selectedSellType = "inventario"
-    DropFrame.Visible = false
-    sellDropdownOpen = false
-    SellDropBtn.Text = "
+-- Fechar
+local function cl
