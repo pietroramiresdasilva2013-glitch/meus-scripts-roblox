@@ -1,0 +1,350 @@
+-- [[ Multi Save & TP - Delta Mobile ]]
+-- Lista + Scroll + Selecionar (verde) + X para apagar + TP
+
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local UIS = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+
+-- Limpa GUI antiga
+pcall(function()
+    if CoreGui:FindFirstChild("MultiSaveTP_GUI") then
+        CoreGui.MultiSaveTP_GUI:Destroy()
+    end
+end)
+
+local savedLocations = {} -- { {name = "Local 1", cframe = CFrame}, ... }
+local selectedIndex = nil
+local minimized = false
+local maxSlots = 8
+
+-- ==================== GUI ====================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "MultiSaveTP_GUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.Parent = CoreGui
+
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.Size = UDim2.new(0, 230, 0, 320)
+Main.Position = UDim2.new(0.04, 0, 0.25, 0)
+Main.BackgroundColor3 = Color3.fromRGB(20, 20, 26)
+Main.BorderSizePixel = 0
+Main.Active = true
+Main.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.Parent = Main
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(65, 65, 85)
+UIStroke.Thickness = 1.5
+UIStroke.Parent = Main
+
+-- Barra de título
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 34)
+TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = Main
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 12)
+TitleCorner.Parent = TitleBar
+
+local TitleFix = Instance.new("Frame")
+TitleFix.Size = UDim2.new(1, 0, 0, 14)
+TitleFix.Position = UDim2.new(0, 0, 1, -14)
+TitleFix.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+TitleFix.BorderSizePixel = 0
+TitleFix.Parent = TitleBar
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -45, 1, 0)
+Title.Position = UDim2.new(0, 12, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "📍 Multi Save & TP"
+Title.TextColor3 = Color3.fromRGB(235, 235, 245)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 14
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TitleBar
+
+-- Minimizar
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Size = UDim2.new(0, 28, 0, 28)
+MinimizeBtn.Position = UDim2.new(1, -32, 0, 3)
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+MinimizeBtn.Text = "–"
+MinimizeBtn.TextColor3 = Color3.fromRGB(230, 230, 240)
+MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.TextSize = 16
+MinimizeBtn.Parent = TitleBar
+
+local MinCorner = Instance.new("UICorner")
+MinCorner.CornerRadius = UDim.new(0, 6)
+MinCorner.Parent = MinimizeBtn
+
+-- Conteúdo
+local Content = Instance.new("Frame")
+Content.Name = "Content"
+Content.Size = UDim2.new(1, 0, 1, -34)
+Content.Position = UDim2.new(0, 0, 0, 34)
+Content.BackgroundTransparency = 1
+Content.Parent = Main
+
+-- Botão Salvar Nova
+local SaveBtn = Instance.new("TextButton")
+SaveBtn.Size = UDim2.new(1, -20, 0, 34)
+SaveBtn.Position = UDim2.new(0, 10, 0, 10)
+SaveBtn.BackgroundColor3 = Color3.fromRGB(40, 115, 195)
+SaveBtn.Text = "💾  Salvar Nova Localização"
+SaveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SaveBtn.Font = Enum.Font.GothamSemibold
+SaveBtn.TextSize = 13
+SaveBtn.Parent = Content
+
+local SaveCorner = Instance.new("UICorner")
+SaveCorner.CornerRadius = UDim.new(0, 8)
+SaveCorner.Parent = SaveBtn
+
+-- Lista (ScrollingFrame)
+local ListFrame = Instance.new("ScrollingFrame")
+ListFrame.Name = "List"
+ListFrame.Size = UDim2.new(1, -20, 0, 160)
+ListFrame.Position = UDim2.new(0, 10, 0, 52)
+ListFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
+ListFrame.BorderSizePixel = 0
+ListFrame.ScrollBarThickness = 4
+ListFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 130)
+ListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ListFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+ListFrame.Parent = Content
+
+local ListCorner = Instance.new("UICorner")
+ListCorner.CornerRadius = UDim.new(0, 8)
+ListCorner.Parent = ListFrame
+
+local ListLayout = Instance.new("UIListLayout")
+ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ListLayout.Padding = UDim.new(0, 6)
+ListLayout.Parent = ListFrame
+
+local ListPadding = Instance.new("UIPadding")
+ListPadding.PaddingTop = UDim.new(0, 6)
+ListPadding.PaddingBottom = UDim.new(0, 6)
+ListPadding.PaddingLeft = UDim.new(0, 6)
+ListPadding.PaddingRight = UDim.new(0, 6)
+ListPadding.Parent = ListFrame
+
+-- Botão TP
+local TPBtn = Instance.new("TextButton")
+TPBtn.Size = UDim2.new(1, -20, 0, 38)
+TPBtn.Position = UDim2.new(0, 10, 0, 222)
+TPBtn.BackgroundColor3 = Color3.fromRGB(45, 150, 85)
+TPBtn.Text = "🚀  Teleportar (TP)"
+TPBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TPBtn.Font = Enum.Font.GothamSemibold
+TPBtn.TextSize = 14
+TPBtn.Parent = Content
+
+local TPCorner = Instance.new("UICorner")
+TPCorner.CornerRadius = UDim.new(0, 8)
+TPCorner.Parent = TPBtn
+
+-- Status
+local Status = Instance.new("TextLabel")
+Status.Size = UDim2.new(1, -20, 0, 20)
+Status.Position = UDim2.new(0, 10, 0, 268)
+Status.BackgroundTransparency = 1
+Status.Text = "Nenhuma localização selecionada"
+Status.TextColor3 = Color3.fromRGB(140, 140, 160)
+Status.Font = Enum.Font.Gotham
+Status.TextSize = 11
+Status.Parent = Content
+
+-- ==================== ARRASTAR ====================
+local dragging = false
+local dragStart, startPos
+
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = Main.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- ==================== FUNÇÕES ====================
+local function getHRP()
+    local char = player.Character
+    if not char then return nil end
+    return char:FindFirstChild("HumanoidRootPart")
+end
+
+local function refreshList()
+    -- Limpa lista atual
+    for _, child in ipairs(ListFrame:GetChildren()) do
+        if child:IsA("Frame") then
+            child:Destroy()
+        end
+    end
+
+    for i, data in ipairs(savedLocations) do
+        local item = Instance.new("Frame")
+        item.Size = UDim2.new(1, -4, 0, 36)
+        item.BackgroundColor3 = (selectedIndex == i) and Color3.fromRGB(35, 90, 55) or Color3.fromRGB(40, 40, 52)
+        item.BorderSizePixel = 0
+        item.LayoutOrder = i
+        item.Parent = ListFrame
+
+        local itemCorner = Instance.new("UICorner")
+        itemCorner.CornerRadius = UDim.new(0, 7)
+        itemCorner.Parent = item
+
+        -- Nome / botão de seleção
+        local selectBtn = Instance.new("TextButton")
+        selectBtn.Size = UDim2.new(1, -40, 1, 0)
+        selectBtn.Position = UDim2.new(0, 0, 0, 0)
+        selectBtn.BackgroundTransparency = 1
+        selectBtn.Text = (selectedIndex == i and "🟢  " or "⚪  ") .. data.name
+        selectBtn.TextColor3 = (selectedIndex == i) and Color3.fromRGB(160, 255, 180) or Color3.fromRGB(210, 210, 225)
+        selectBtn.Font = Enum.Font.Gotham
+        selectBtn.TextSize = 13
+        selectBtn.TextXAlignment = Enum.TextXAlignment.Left
+        selectBtn.Parent = item
+
+        local textPad = Instance.new("UIPadding")
+        textPad.PaddingLeft = UDim.new(0, 10)
+        textPad.Parent = selectBtn
+
+        -- Botão X (apagar)
+        local delBtn = Instance.new("TextButton")
+        delBtn.Size = UDim2.new(0, 30, 0, 28)
+        delBtn.Position = UDim2.new(1, -34, 0.5, -14)
+        delBtn.BackgroundColor3 = Color3.fromRGB(170, 45, 45)
+        delBtn.Text = "X"
+        delBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        delBtn.Font = Enum.Font.GothamBold
+        delBtn.TextSize = 13
+        delBtn.Parent = item
+
+        local delCorner = Instance.new("UICorner")
+        delCorner.CornerRadius = UDim.new(0, 6)
+        delCorner.Parent = delBtn
+
+        -- Selecionar
+        selectBtn.MouseButton1Click:Connect(function()
+            selectedIndex = i
+            refreshList()
+            Status.Text = "Selecionado: " .. data.name
+            Status.TextColor3 = Color3.fromRGB(120, 220, 150)
+        end)
+
+        -- Apagar
+        delBtn.MouseButton1Click:Connect(function()
+            table.remove(savedLocations, i)
+            if selectedIndex == i then
+                selectedIndex = nil
+                Status.Text = "Nenhuma localização selecionada"
+                Status.TextColor3 = Color3.fromRGB(140, 140, 160)
+            elseif selectedIndex and selectedIndex > i then
+                selectedIndex = selectedIndex - 1
+            end
+            refreshList()
+        end)
+    end
+end
+
+-- Minimizar
+MinimizeBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        Content.Visible = false
+        Main.Size = UDim2.new(0, 230, 0, 34)
+        MinimizeBtn.Text = "+"
+    else
+        Content.Visible = true
+        Main.Size = UDim2.new(0, 230, 0, 320)
+        MinimizeBtn.Text = "–"
+    end
+end)
+
+-- Salvar nova
+SaveBtn.MouseButton1Click:Connect(function()
+    if #savedLocations >= maxSlots then
+        Status.Text = "Máximo de " .. maxSlots .. " localizações!"
+        Status.TextColor3 = Color3.fromRGB(255, 120, 120)
+        return
+    end
+
+    local hrp = getHRP()
+    if not hrp then
+        Status.Text = "Personagem não encontrado"
+        Status.TextColor3 = Color3.fromRGB(255, 100, 100)
+        return
+    end
+
+    local num = #savedLocations + 1
+    table.insert(savedLocations, {
+        name = "Local " .. num,
+        cframe = hrp.CFrame
+    })
+
+    selectedIndex = #savedLocations
+    refreshList()
+
+    Status.Text = "Salvo: Local " .. num
+    Status.TextColor3 = Color3.fromRGB(120, 220, 150)
+
+    SaveBtn.Text = "✅  Salvo!"
+    task.delay(1, function()
+        if SaveBtn then SaveBtn.Text = "💾  Salvar Nova Localização" end
+    end)
+end)
+
+-- Teleportar
+TPBtn.MouseButton1Click:Connect(function()
+    if not selectedIndex or not savedLocations[selectedIndex] then
+        Status.Text = "Selecione uma localização primeiro!"
+        Status.TextColor3 = Color3.fromRGB(255, 120, 120)
+        return
+    end
+
+    local hrp = getHRP()
+    if not hrp then
+        Status.Text = "Personagem não encontrado"
+        Status.TextColor3 = Color3.fromRGB(255, 100, 100)
+        return
+    end
+
+    hrp.CFrame = savedLocations[selectedIndex].cframe
+
+    Status.Text = "Teleportado para: " .. savedLocations[selectedIndex].name
+    Status.TextColor3 = Color3.fromRGB(100, 180, 255)
+
+    TPBtn.Text = "✅  Teleportado!"
+    task.delay(1.1, function()
+        if TPBtn then TPBtn.Text = "🚀  Teleportar (TP)" end
+    end)
+end)
+
+refreshList()
+print("[Multi Save & TP] Carregado com sucesso!")
