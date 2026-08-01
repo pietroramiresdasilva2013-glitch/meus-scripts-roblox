@@ -1,24 +1,23 @@
 -- ====================================================
--- PAINEL PAUSE/TEMPO - OTIMIZADO PARA DELTA MOBILE
+-- AUTO-TIMER ALEATÓRIO / DINÂMICO - DELTA MOBILE
 -- ====================================================
 
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 
--- Remove versão antiga se já estiver aberta
-if CoreGui:FindFirstChild("DeltaTempoGUI") then
-    CoreGui.DeltaTempoGUI:Destroy()
+-- Limpa versões anteriores
+if CoreGui:FindFirstChild("DeltaAutoTimerGUI") then
+    CoreGui.DeltaAutoTimerGUI:Destroy()
 end
 
--- ScreenGui no CoreGui (Protegido contra respawn)
+-- Criação da Interface Protegida
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "DeltaTempoGUI"
+screenGui.Name = "DeltaAutoTimerGUI"
 screenGui.ResetOnSpawn = false
 
--- Garante compatibilidade no Delta Mobile
 if syn and syn.protect_gui then
     syn.protect_gui(screenGui)
     screenGui.Parent = CoreGui
@@ -28,22 +27,22 @@ else
     screenGui.Parent = CoreGui
 end
 
--- Janela Principal (Proporção maior para toque mobile)
+-- Janela Principal
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 260, 0, 210)
-mainFrame.Position = UDim2.new(0.5, -130, 0.3, 0)
+mainFrame.Size = UDim2.new(0, 250, 0, 160)
+mainFrame.Position = UDim2.new(0.5, -125, 0.2, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 26)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
-mainFrame.Draggable = true -- Permite arrastar com o dedo na tela
+mainFrame.Draggable = true
 mainFrame.Parent = screenGui
 
 local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 10)
 corner.Parent = mainFrame
 
--- Barra Superior (Título + Minimizar)
+-- Barra Superior
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 36)
 titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
@@ -58,14 +57,14 @@ local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, -45, 1, 0)
 titleLabel.Position = UDim2.new(0, 12, 0, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "⚡ Delta Auto-Timer"
+titleLabel.Text = "⚡ Auto-Timer Randômico"
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextSize = 14
+titleLabel.TextSize = 13
 titleLabel.Parent = titleBar
 
--- Botão Minimizar / Expandir
+-- Botão Minimizar
 local btnMin = Instance.new("TextButton")
 btnMin.Size = UDim2.new(0, 30, 0, 26)
 btnMin.Position = UDim2.new(1, -34, 0, 5)
@@ -80,110 +79,144 @@ local btnMinCorner = Instance.new("UICorner")
 btnMinCorner.CornerRadius = UDim.new(0, 6)
 btnMinCorner.Parent = btnMin
 
--- Conteúdo Principal
+-- Conteúdo
 local content = Instance.new("Frame")
 content.Size = UDim2.new(1, -20, 1, -46)
 content.Position = UDim2.new(0, 10, 0, 42)
 content.BackgroundTransparency = 1
 content.Parent = mainFrame
 
--- Botão 1: Parar no Tempo Exato (ex: 07.00)
-local btnExato = Instance.new("TextButton")
-btnExato.Size = UDim2.new(1, 0, 0, 42)
-btnExato.Position = UDim2.new(0, 0, 0, 5)
-btnExato.BackgroundColor3 = Color3.fromRGB(0, 150, 130)
-btnExato.Text = "🎯 Parar no Tempo Atual (07.00)"
-btnExato.TextColor3 = Color3.fromRGB(255, 255, 255)
-btnExato.Font = Enum.Font.GothamBold
-btnExato.TextSize = 13
-btnExato.Parent = content
+-- Botão ON / OFF
+local btnToggle = Instance.new("TextButton")
+btnToggle.Size = UDim2.new(1, 0, 0, 45)
+btnToggle.Position = UDim2.new(0, 0, 0, 5)
+btnToggle.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+btnToggle.Text = "Auto Clicker: DESLIGADO"
+btnToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnToggle.Font = Enum.Font.GothamBold
+btnToggle.TextSize = 13
+btnToggle.Parent = content
 
 local c1 = Instance.new("UICorner")
 c1.CornerRadius = UDim.new(0, 8)
-c1.Parent = btnExato
+c1.Parent = btnToggle
 
--- Botão 2: Parar em Tempo Aleatório
-local btnAleatorio = Instance.new("TextButton")
-btnAleatorio.Size = UDim2.new(1, 0, 0, 42)
-btnAleatorio.Position = UDim2.new(0, 0, 0, 55)
-btnAleatorio.BackgroundColor3 = Color3.fromRGB(130, 50, 200)
-btnAleatorio.Text = "🎲 Tempo Aleatório"
-btnAleatorio.TextColor3 = Color3.fromRGB(255, 255, 255)
-btnAleatorio.Font = Enum.Font.GothamBold
-btnAleatorio.TextSize = 13
-btnAleatorio.Parent = content
+-- Status da Leitura
+local statusAlvo = Instance.new("TextLabel")
+statusAlvo.Size = UDim2.new(1, 0, 0, 20)
+statusAlvo.Position = UDim2.new(0, 0, 0, 58)
+statusAlvo.BackgroundTransparency = 1
+statusAlvo.Text = "Alvo da Rodada: Nenhum"
+statusAlvo.TextColor3 = Color3.fromRGB(160, 160, 170)
+statusAlvo.Font = Enum.Font.Gotham
+statusAlvo.TextSize = 11
+statusAlvo.Parent = content
 
-local c2 = Instance.new("UICorner")
-c2.CornerRadius = UDim.new(0, 8)
-c2.Parent = btnAleatorio
-
--- Label de Status
-local status = Instance.new("TextLabel")
-status.Size = UDim2.new(1, 0, 0, 25)
-status.Position = UDim2.new(0, 0, 0, 110)
-status.BackgroundTransparency = 1
-status.Text = "Status: Pronto"
-status.TextColor3 = Color3.fromRGB(160, 160, 170)
-status.Font = Enum.Font.Gotham
-status.TextSize = 12
-status.Parent = content
+local statusAcao = Instance.new("TextLabel")
+statusAcao.Size = UDim2.new(1, 0, 0, 20)
+statusAcao.Position = UDim2.new(0, 0, 0, 78)
+statusAcao.BackgroundTransparency = 1
+statusAcao.Text = "Status: Aguardando ligar"
+statusAcao.TextColor3 = Color3.fromRGB(0, 255, 150)
+statusAcao.Font = Enum.Font.GothamBold
+statusAcao.TextSize = 11
+statusAcao.Parent = content
 
 -- ====================================================
--- SISTEMA DE MINIMIZAR / RESTAURAR
+-- LÓGICA DE CAPTURA AUTOMÁTICA DE ALVO ALEATÓRIO
 -- ====================================================
+local autoActivated = false
+local alvoAtual = nil
+local jaApertou = false
+
+-- Minimizar Painel
 local minimizado = false
-
 btnMin.MouseButton1Click:Connect(function()
     minimizado = not minimizado
-    
-    local tamanhoAlvo = minimizado and UDim2.new(0, 260, 0, 36) or UDim2.new(0, 260, 0, 210)
     btnMin.Text = minimizado and "+" or "-"
     content.Visible = not minimizado
     
-    TweenService:Create(mainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        Size = tamanhoAlvo
+    TweenService:Create(mainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+        Size = minimizado and UDim2.new(0, 250, 0, 36) or UDim2.new(0, 250, 0, 160)
     }):Play()
 end)
 
--- ====================================================
--- FUNÇÕES DE INTERAÇÃO
--- ====================================================
-local function acionarBotaoJogo()
-    -- Tenta ProximityPrompt
+-- Ligar / Desligar Botão
+btnToggle.MouseButton1Click:Connect(function()
+    autoActivated = not autoActivated
+    jaApertou = false
+    
+    if autoActivated then
+        btnToggle.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
+        btnToggle.Text = "Auto Clicker: LIGADO ⚡"
+        statusAcao.Text = "Status: Procurando alvo..."
+    else
+        btnToggle.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        btnToggle.Text = "Auto Clicker: DESLIGADO"
+        statusAcao.Text = "Status: Parado"
+    end
+end)
+
+-- Função para clicar no botão do jogo
+local function dispararClique()
     for _, prompt in pairs(workspace:GetDescendants()) do
-        if prompt:IsA("ProximityPrompt") then
-            if fireproximityprompt then
-                fireproximityprompt(prompt)
-            end
+        if prompt:IsA("ProximityPrompt") and fireproximityprompt then
+            fireproximityprompt(prompt)
         end
     end
-    
-    -- Tenta ClickDetector
     for _, cd in pairs(workspace:GetDescendants()) do
-        if cd:IsA("ClickDetector") then
-            if fireclickdetector then
-                fireclickdetector(cd)
-            end
+        if cd:IsA("ClickDetector") and fireclickdetector then
+            fireclickdetector(cd)
         end
     end
 end
 
--- Clique: Tempo Exato (07.00)
-btnExato.MouseButton1Click:Connect(function()
-    status.Text = "Status: Parando em 07.00..."
-    acionarBotaoJogo()
-    task.wait(0.5)
-    status.Text = "Status: Concluído!"
-end)
+-- Monitor em Tempo Real
+RunService.RenderStepped:Connect(function()
+    if not autoActivated then return end
 
--- Clique: Tempo Aleatório
-btnAleatorio.MouseButton1Click:Connect(function()
-    local seg = math.random(1, 9)
-    local ms = math.random(0, 99)
-    local tempoSorteado = string.format("%02d.%02d", seg, ms)
-    
-    status.Text = "Status: Alvo -> " .. tempoSorteado
-    acionarBotaoJogo()
-    task.wait(0.5)
-    status.Text = "Status: Parado em " .. tempoSorteado
+    -- 1. Varre o jogo procurando o texto que indica o objetivo aleatório da rodada (Ex: "03.25")
+    for _, gui in pairs(workspace:GetDescendants()) do
+        if gui:IsA("TextLabel") or gui:IsA("SurfaceGui") then
+            local texto = tostring(gui.Text)
+            
+            -- Procura por formato de tempo (número.número ex: 04.50, 10.12) perto de avisos
+            local acheiTempo = string.match(texto, "%d%d%.%d%d")
+            
+            if acheiTempo then
+                local textoLower = string.lower(texto)
+                -- Verifica se é o texto do comando da rodada
+                if string.find(textoLower, "tempômetro") or string.find(textoLower, "tempo") or string.find(textoLower, "interroger") or string.find(textoLower, "alvo") then
+                    if alvoAtual ~= acheiTempo then
+                        alvoAtual = acheiTempo
+                        statusAlvo.Text = "Alvo da Rodada: " .. alvoAtual .. "s"
+                        jaApertoures = false -- Reseta para o novo alvo
+                        jaApertou = false
+                    end
+                end
+            end
+        end
+    end
+
+    -- 2. Se já descobriu o alvo da rodada, fica checando o visor principal para bater o tempo exato
+    if alvoAtual and not jaApertou then
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("TextLabel") then
+                -- Compara o texto do visor do cronômetro rodando com o alvo aleatório capturado
+                if obj.Text == alvoAtual or string.find(obj.Text, alvoAtual) then
+                    jaApertou = true
+                    dispararClique()
+                    statusAcao.Text = "Status: PAROU EM " .. alvoAtual .. "!"
+                    
+                    -- Aguarda a rodada reiniciar e limpa o alvo antigo para pegar o próximo aleatório
+                    task.wait(3)
+                    alvoAtual = nil
+                    statusAlvo.Text = "Alvo da Rodada: Sorteando nova..."
+                    statusAcao.Text = "Status: Aguardando..."
+                    jaApertou = false
+                    break
+                end
+            end
+        end
+    end
 end)
