@@ -1,22 +1,24 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
 
--- 👑 SEU NOME DE USUÁRIO DO ROBLOX
+-- 👑 SEU NOME DE USUÁRIO (DONO)
 local DONO_USERNAME = LocalPlayer.Name 
 
--- 📋 Sistema de Cargos
+-- 📋 Sistema de Cargos e Níveis
 local RANKS = {
-	DONO        = {Level = 5, TagText = "DONO MZ", TagColor = Color3.fromRGB(255, 0, 0)},
-	SUPER_ADMIN = {Level = 4, TagText = "SUPER ADMIN", TagColor = Color3.fromRGB(255, 170, 0)},
-	ADMIN       = {Level = 3, TagText = "ADMIN", TagColor = Color3.fromRGB(255, 215, 0)},
-	MODERADOR   = {Level = 2, TagText = "MODERADOR", TagColor = Color3.fromRGB(0, 170, 255)},
-	VIP         = {Level = 1, TagText = "VIP", TagColor = Color3.fromRGB(170, 0, 255)},
+	DONO        = {Level = 5, TagText = "DONO MZ", TagColor = Color3.fromRGB(255, 45, 85)},
+	SUPER_ADMIN = {Level = 4, TagText = "SUPER ADMIN", TagColor = Color3.fromRGB(255, 149, 0)},
+	ADMIN       = {Level = 3, TagText = "ADMIN", TagColor = Color3.fromRGB(255, 204, 0)},
+	MODERADOR   = {Level = 2, TagText = "MODERADOR", TagColor = Color3.fromRGB(52, 199, 89)},
+	VIP         = {Level = 1, TagText = "VIP", TagColor = Color3.fromRGB(175, 82, 222)},
 	MEMBRO      = {Level = 0, TagText = "", TagColor = Color3.fromRGB(255, 255, 255)}
 }
 
 local UserRanks = {}
+local selectedTarget = nil -- Jogador selecionado na lista
 
--- 🎨 Função de Tag Acima da Cabeça (BillboardGui)
+-- 🎨 Overhead Tag (Visual em cima da cabeça)
 local function ApplyTag(player, character)
 	local head = character:WaitForChild("Head", 5)
 	if not head then return end
@@ -31,7 +33,7 @@ local function ApplyTag(player, character)
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "AdminTag"
 	billboard.Size = UDim2.new(0, 200, 0, 50)
-	billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+	billboard.StudsOffset = Vector3.new(0, 2.8, 0)
 	billboard.AlwaysOnTop = true
 	billboard.Parent = head
 
@@ -40,10 +42,10 @@ local function ApplyTag(player, character)
 	label.BackgroundTransparency = 1
 	label.TextColor3 = rankData.TagColor
 	label.TextScaled = true
-	label.Font = Enum.Font.SourceSansBold
+	label.Font = Enum.Font.GothamBold
 
 	if rankData.Level == 5 then
-		label.Text = "🔴 " .. rankData.TagText .. " 🔴\n[" .. player.DisplayName .. "]"
+		label.Text = "👑 " .. rankData.TagText .. " 👑\n[" .. player.DisplayName .. "]"
 	else
 		label.Text = "[" .. rankData.TagText .. "]\n" .. player.DisplayName
 	end
@@ -51,13 +53,9 @@ local function ApplyTag(player, character)
 	label.Parent = billboard
 end
 
--- Configura cargos iniciais
+-- Inicializa os cargos
 for _, p in pairs(Players:GetPlayers()) do
-	if p.Name == DONO_USERNAME then
-		UserRanks[p.UserId] = RANKS.DONO
-	else
-		UserRanks[p.UserId] = RANKS.MEMBRO
-	end
+	UserRanks[p.UserId] = (p.Name == DONO_USERNAME) and RANKS.DONO or RANKS.MEMBRO
 	if p.Character then ApplyTag(p, p.Character) end
 	p.CharacterAdded:Connect(function(char) ApplyTag(p, char) end)
 end
@@ -67,62 +65,237 @@ Players.PlayerAdded:Connect(function(p)
 	p.CharacterAdded:Connect(function(char) ApplyTag(p, char) end)
 end)
 
--- 📱 Interface Mobile (Delta GUI)
+---------------------------------------------------------
+-- 📱 INTERFACE GRÁFICA PROFISSIONAL (MOBILE)
+---------------------------------------------------------
+
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "DeltaAdminGui"
+ScreenGui.Name = "MZ_AdminHub_Pro"
+ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
+-- Container Principal
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 220, 0, 260)
+MainFrame.Size = UDim2.new(0, 280, 0, 380)
 MainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
-MainFrame.Draggable = true -- Permite arrastar na tela do celular
+MainFrame.Draggable = true
+MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
 
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
-Title.Text = "PAINEL DONO MZ"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 18
-Title.Parent = MainFrame
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.Parent = MainFrame
 
--- Criador de Botões para comandos rápidos no celular
-local function CreateButton(text, pos, callback)
+-- Barra Superior (Header)
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 40)
+Header.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
+Header.BorderSizePixel = 0
+Header.Parent = MainFrame
+
+local HeaderCorner = Instance.new("UICorner")
+HeaderCorner.CornerRadius = UDim.new(0, 12)
+HeaderCorner.Parent = Header
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(0.6, 0, 1, 0)
+Title.Position = UDim2.new(0.05, 0, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "⚡ MZ ADMIN PRO"
+Title.TextColor3 = Color3.fromRGB(255, 45, 85)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 14
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = Header
+
+-- Botão Minimizar/Aumentar (-)
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Size = UDim2.new(0, 30, 0, 30)
+ToggleBtn.Position = UDim2.new(0.85, -5, 0.12, 0)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(38, 38, 48)
+ToggleBtn.Text = "-"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextSize = 16
+ToggleBtn.Parent = Header
+
+local BtnCorner = Instance.new("UICorner")
+BtnCorner.CornerRadius = UDim.new(0, 8)
+BtnCorner.Parent = ToggleBtn
+
+-- Área de Rolagem do Menu Principal
+local Scroll = Instance.new("ScrollingFrame")
+Scroll.Size = UDim2.new(0.9, 0, 0.72, 0)
+Scroll.Position = UDim2.new(0.05, 0, 0.14, 0)
+Scroll.BackgroundTransparency = 1
+Scroll.BorderSizePixel = 0
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 520)
+Scroll.ScrollBarThickness = 4
+Scroll.ScrollBarImageColor3 = Color3.fromRGB(255, 45, 85)
+Scroll.Parent = MainFrame
+
+local UIList = Instance.new("UIListLayout")
+UIList.Padding = UDim.new(0, 8)
+UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIList.Parent = Scroll
+
+local function AddButton(text, color, callback)
 	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(0.9, 0, 0, 35)
-	btn.Position = pos
+	btn.Size = UDim2.new(0.95, 0, 0, 32)
+	btn.BackgroundColor3 = Color3.fromRGB(32, 32, 40)
 	btn.Text = text
-	btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-	btn.Font = Enum.Font.SourceSans
-	btn.TextSize = 14
-	btn.Parent = MainFrame
+	btn.TextColor3 = color or Color3.fromRGB(240, 240, 240)
+	btn.Font = Enum.Font.GothamMedium
+	btn.TextSize = 12
+	btn.Parent = Scroll
+
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, 6)
+	c.Parent = btn
+
 	btn.MouseButton1Click:Connect(callback)
 end
 
--- Botões com atalhos funcionais
-CreateButton("Velocidade (VIP+)", UDim2.new(0.05, 0, 0.18, 0), function()
-	if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-		LocalPlayer.Character.Humanoid.WalkSpeed = 50
+---------------------------------------------------------
+-- 👥 SELETOR DE JOGADORES (ABRIR PARA BAIXO: ▼ / ▲)
+---------------------------------------------------------
+
+local PlayerListFrame = Instance.new("ScrollingFrame")
+PlayerListFrame.Size = UDim2.new(0.95, 0, 0, 0) -- Começa fechado
+PlayerListFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+PlayerListFrame.BorderSizePixel = 0
+PlayerListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+PlayerListFrame.ScrollBarThickness = 3
+PlayerListFrame.Parent = Scroll
+
+local PlayerListCorner = Instance.new("UICorner")
+PlayerListCorner.CornerRadius = UDim.new(0, 6)
+PlayerListCorner.Parent = PlayerListFrame
+
+local PlayerListLayout = Instance.new("UIListLayout")
+PlayerListLayout.Padding = UDim.new(0, 5)
+PlayerListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+PlayerListLayout.Parent = PlayerListFrame
+
+local SelectedLabel = Instance.new("TextLabel")
+SelectedLabel.Size = UDim2.new(0.95, 0, 0, 25)
+SelectedLabel.BackgroundTransparency = 1
+SelectedLabel.Text = "Alvo Selecionado: NENHUM"
+SelectedLabel.TextColor3 = Color3.fromRGB(255, 204, 0)
+SelectedLabel.Font = Enum.Font.GothamBold
+SelectedLabel.TextSize = 11
+SelectedLabel.Parent = Scroll
+
+local isPlayerListOpen = false
+AddButton("▼ Selecionar Jogador (Lista do Servidor)", Color3.fromRGB(0, 170, 255), function()
+	isPlayerListOpen = not isPlayerListOpen
+	if isPlayerListOpen then
+		TweenService:Create(PlayerListFrame, TweenInfo.new(0.3), {Size = UDim2.new(0.95, 0, 0, 120)}):Play()
+		-- Atualiza a lista de jogadores
+		for _, child in pairs(PlayerListFrame:GetChildren()) do
+			if child:IsA("TextButton") then child:Destroy() end
+		end
+		
+		for _, p in pairs(Players:GetPlayers()) do
+			local pBtn = Instance.new("TextButton")
+			pBtn.Size = UDim2.new(0.95, 0, 0, 28)
+			pBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+			pBtn.Text = p.Name .. " (" .. (UserRanks[p.UserId] and UserRanks[p.UserId].TagText or "MEMBRO") .. ")"
+			pBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+			pBtn.Font = Enum.Font.Gotham
+			pBtn.TextSize = 11
+			pBtn.Parent = PlayerListFrame
+			
+			local c = Instance.new("UICorner")
+			c.CornerRadius = UDim.new(0, 4)
+			c.Parent = pBtn
+			
+			pBtn.MouseButton1Click:Connect(function()
+				selectedTarget = p
+				SelectedLabel.Text = "Alvo: " .. p.Name
+			end)
+		end
+	else
+		TweenService:Create(PlayerListFrame, TweenInfo.new(0.3), {Size = UDim2.new(0.95, 0, 0, 0)}):Play()
 	end
 end)
 
-CreateButton("Pulo Alto (ADMIN+)", UDim2.new(0.05, 0, 0.35, 0), function()
-	if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-		LocalPlayer.Character.Humanoid.JumpPower = 100
+---------------------------------------------------------
+-- 📋 BOTÕES PARA DAR CARGOS AO JOGADOR SELECIONADO
+---------------------------------------------------------
+
+AddButton("⭐ Dar Cargo: VIP", Color3.fromRGB(175, 82, 222), function()
+	if selectedTarget then
+		UserRanks[selectedTarget.UserId] = RANKS.VIP
+		if selectedTarget.Character then ApplyTag(selectedTarget, selectedTarget.Character) end
 	end
 end)
 
-CreateButton("Restaurar Atributos", UDim2.new(0.05, 0, 0.52, 0), function()
+AddButton("🛡️ Dar Cargo: MODERADOR", Color3.fromRGB(52, 199, 89), function()
+	if selectedTarget then
+		UserRanks[selectedTarget.UserId] = RANKS.MODERADOR
+		if selectedTarget.Character then ApplyTag(selectedTarget, selectedTarget.Character) end
+	end
+end)
+
+AddButton("👑 Dar Cargo: ADMIN", Color3.fromRGB(255, 204, 0), function()
+	if selectedTarget then
+		UserRanks[selectedTarget.UserId] = RANKS.ADMIN
+		if selectedTarget.Character then ApplyTag(selectedTarget, selectedTarget.Character) end
+	end
+end)
+
+AddButton("⚡ Dar Cargo: SUPER ADMIN", Color3.fromRGB(255, 149, 0), function()
+	if selectedTarget then
+		UserRanks[selectedTarget.UserId] = RANKS.SUPER_ADMIN
+		if selectedTarget.Character then ApplyTag(selectedTarget, selectedTarget.Character) end
+	end
+end)
+
+---------------------------------------------------------
+-- 🎮 OUTROS COMANDOS RÁPIDOS
+---------------------------------------------------------
+
+AddButton("🚀 Super Velocidade (Speed 60)", Color3.fromRGB(255, 255, 255), function()
+	if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+		LocalPlayer.Character.Humanoid.WalkSpeed = 60
+	end
+end)
+
+AddButton("🛡️ GodMode (Vida Infinita)", Color3.fromRGB(52, 199, 89), function()
+	if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+		LocalPlayer.Character.Humanoid.MaxHealth = math.huge
+		LocalPlayer.Character.Humanoid.Health = math.huge
+	end
+end)
+
+AddButton("🔄 Resetar Atributos", Color3.fromRGB(255, 59, 48), function()
 	if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
 		LocalPlayer.Character.Humanoid.WalkSpeed = 16
 		LocalPlayer.Character.Humanoid.JumpPower = 50
+		LocalPlayer.Character.Humanoid.MaxHealth = 100
+		LocalPlayer.Character.Humanoid.Health = 100
 	end
 end)
 
-CreateButton("Fechar / Abrir Menu", UDim2.new(0.05, 0, 0.75, 0), function()
-	MainFrame.Visible = not MainFrame.Visible
+---------------------------------------------------------
+-- 📐 MINIMIZAR / AUMENTAR O PAINEL PRINCIPAL
+---------------------------------------------------------
+
+local isMinimized = false
+ToggleBtn.MouseButton1Click:Connect(function()
+	isMinimized = not isMinimized
+	if isMinimized then
+		TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 280, 0, 40)}):Play()
+		Scroll.Visible = false
+		ToggleBtn.Text = "+"
+	else
+		TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 280, 0, 380)}):Play()
+		task.wait(0.15)
+		Scroll.Visible = true
+		ToggleBtn.Text = "-"
+	end
 end)
