@@ -1,5 +1,5 @@
 -- ====================================================
--- AUTO-TIMER ALEATÓRIO / DINÂMICO - DELTA MOBILE
+-- AUTO-TIMER DEFINITIVO (PRÁTICA + CADEIRA 1V1)
 -- ====================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -8,12 +8,10 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 
--- Limpa versões anteriores
 if CoreGui:FindFirstChild("DeltaAutoTimerGUI") then
     CoreGui.DeltaAutoTimerGUI:Destroy()
 end
 
--- Criação da Interface Protegida
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "DeltaAutoTimerGUI"
 screenGui.ResetOnSpawn = false
@@ -31,7 +29,7 @@ end
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
 mainFrame.Size = UDim2.new(0, 250, 0, 160)
-mainFrame.Position = UDim2.new(0.5, -125, 0.2, 0)
+mainFrame.Position = UDim2.new(0.5, -125, 0.15, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 26)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
@@ -57,14 +55,14 @@ local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, -45, 1, 0)
 titleLabel.Position = UDim2.new(0, 12, 0, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "⚡ Auto-Timer Randômico"
+titleLabel.Text = "⚡ Auto-Timer Ultra"
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextSize = 13
 titleLabel.Parent = titleBar
 
--- Botão Minimizar
+-- Minimizar
 local btnMin = Instance.new("TextButton")
 btnMin.Size = UDim2.new(0, 30, 0, 26)
 btnMin.Position = UDim2.new(1, -34, 0, 5)
@@ -101,12 +99,12 @@ local c1 = Instance.new("UICorner")
 c1.CornerRadius = UDim.new(0, 8)
 c1.Parent = btnToggle
 
--- Status da Leitura
+-- Status
 local statusAlvo = Instance.new("TextLabel")
 statusAlvo.Size = UDim2.new(1, 0, 0, 20)
-statusAlvo.Position = UDim2.new(0, 0, 0, 58)
+statusAlvo.Position = UDim2.new(0, 0, 0, 55)
 statusAlvo.BackgroundTransparency = 1
-statusAlvo.Text = "Alvo da Rodada: Nenhum"
+statusAlvo.Text = "Alvo: Procurando..."
 statusAlvo.TextColor3 = Color3.fromRGB(160, 160, 170)
 statusAlvo.Font = Enum.Font.Gotham
 statusAlvo.TextSize = 11
@@ -114,22 +112,15 @@ statusAlvo.Parent = content
 
 local statusAcao = Instance.new("TextLabel")
 statusAcao.Size = UDim2.new(1, 0, 0, 20)
-statusAcao.Position = UDim2.new(0, 0, 0, 78)
+statusAcao.Position = UDim2.new(0, 0, 0, 75)
 statusAcao.BackgroundTransparency = 1
-statusAcao.Text = "Status: Aguardando ligar"
+statusAcao.Text = "Status: Aguardando..."
 statusAcao.TextColor3 = Color3.fromRGB(0, 255, 150)
 statusAcao.Font = Enum.Font.GothamBold
 statusAcao.TextSize = 11
 statusAcao.Parent = content
 
--- ====================================================
--- LÓGICA DE CAPTURA AUTOMÁTICA DE ALVO ALEATÓRIO
--- ====================================================
-local autoActivated = false
-local alvoAtual = nil
-local jaApertou = false
-
--- Minimizar Painel
+-- Minimizar
 local minimizado = false
 btnMin.MouseButton1Click:Connect(function()
     minimizado = not minimizado
@@ -141,7 +132,10 @@ btnMin.MouseButton1Click:Connect(function()
     }):Play()
 end)
 
--- Ligar / Desligar Botão
+-- Variables
+local autoActivated = false
+local jaApertou = false
+
 btnToggle.MouseButton1Click:Connect(function()
     autoActivated = not autoActivated
     jaApertou = false
@@ -149,7 +143,7 @@ btnToggle.MouseButton1Click:Connect(function()
     if autoActivated then
         btnToggle.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
         btnToggle.Text = "Auto Clicker: LIGADO ⚡"
-        statusAcao.Text = "Status: Procurando alvo..."
+        statusAcao.Text = "Status: Ativo!"
     else
         btnToggle.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
         btnToggle.Text = "Auto Clicker: DESLIGADO"
@@ -157,65 +151,117 @@ btnToggle.MouseButton1Click:Connect(function()
     end
 end)
 
--- Função para clicar no botão do jogo
-local function dispararClique()
-    for _, prompt in pairs(workspace:GetDescendants()) do
-        if prompt:IsA("ProximityPrompt") and fireproximityprompt then
-            fireproximityprompt(prompt)
+-- Função para clicar APENAS no botão vermelho mais próximo do jogador
+local function clicarBotaoProximo()
+    local character = LocalPlayer.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+    local myPos = character.HumanoidRootPart.Position
+    
+    local menorDistancia = 15 -- Só clica se o botão estiver perto de você (ex: na sua mesa)
+    local alvoPrompt = nil
+    local alvoClick = nil
+    
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") then
+            local pos = obj.Parent and obj.Parent:IsA("BasePart") and obj.Parent.Position
+            if pos then
+                local dist = (myPos - pos).Magnitude
+                if dist < menorDistancia then
+                    menorDistancia = dist
+                    alvoPrompt = obj
+                end
+            end
+        elseif obj:IsA("ClickDetector") then
+            local pos = obj.Parent and obj.Parent:IsA("BasePart") and obj.Parent.Position
+            if pos then
+                local dist = (myPos - pos).Magnitude
+                if dist < menorDistancia then
+                    menorDistancia = dist
+                    alvoClick = obj
+                end
+            end
         end
     end
-    for _, cd in pairs(workspace:GetDescendants()) do
-        if cd:IsA("ClickDetector") and fireclickdetector then
-            fireclickdetector(cd)
-        end
+    
+    if alvoPrompt and fireproximityprompt then
+        fireproximityprompt(alvoPrompt)
+    elseif alvoClick and fireclickdetector then
+        fireclickdetector(alvoClick)
     end
 end
 
--- Monitor em Tempo Real
+-- LOOP DE DETECÇÃO E PARADA EM TEMPO REAL
 RunService.RenderStepped:Connect(function()
-    if not autoActivated then return end
+    if not autoActivated or jaApertou then return end
 
-    -- 1. Varre o jogo procurando o texto que indica o objetivo aleatório da rodada (Ex: "03.25")
+    local character = LocalPlayer.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+    local myPos = character.HumanoidRootPart.Position
+
+    local tempoAlvo = nil
+
+    -- 1. TENTA ACHAR O ALVO DO MODO CADEIRA (Ex: "Pare em 8.00" perto do jogador)
     for _, gui in pairs(workspace:GetDescendants()) do
-        if gui:IsA("TextLabel") or gui:IsA("SurfaceGui") then
-            local texto = tostring(gui.Text)
-            
-            -- Procura por formato de tempo (número.número ex: 04.50, 10.12) perto de avisos
-            local acheiTempo = string.match(texto, "%d%d%.%d%d")
-            
-            if acheiTempo then
-                local textoLower = string.lower(texto)
-                -- Verifica se é o texto do comando da rodada
-                if string.find(textoLower, "tempômetro") or string.find(textoLower, "tempo") or string.find(textoLower, "interroger") or string.find(textoLower, "alvo") then
-                    if alvoAtual ~= acheiTempo then
-                        alvoAtual = acheiTempo
-                        statusAlvo.Text = "Alvo da Rodada: " .. alvoAtual .. "s"
-                        jaApertoures = false -- Reseta para o novo alvo
-                        jaApertou = false
+        if gui:IsA("TextLabel") or gui:IsA("SurfaceGui") or gui:IsA("BillboardGui") then
+            local txt = tostring(gui.Text or "")
+            if string.find(txt, "Pare em") or string.find(txt, "pare em") then
+                -- Extrai o número depois de 'Pare em'
+                local num = string.match(txt, "%d+%.%d+") or string.match(txt, "%d+")
+                if num then
+                    -- Verifica se este aviso é da mesa onde o jogador está perto
+                    local parentPart = gui:FindFirstAncestorWhichIsA("BasePart") or gui.Parent
+                    if parentPart and parentPart:IsA("BasePart") then
+                        if (myPos - parentPart.Position).Magnitude < 25 then
+                            tempoAlvo = string.format("%.2f", tonumber(num))
+                            break
+                        end
+                    else
+                        tempoAlvo = string.format("%.2f", tonumber(num))
                     end
                 end
             end
         end
     end
 
-    -- 2. Se já descobriu o alvo da rodada, fica checando o visor principal para bater o tempo exato
-    if alvoAtual and not jaApertou then
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("TextLabel") then
-                -- Compara o texto do visor do cronômetro rodando com o alvo aleatório capturado
-                if obj.Text == alvoAtual or string.find(obj.Text, alvoAtual) then
-                    jaApertou = true
-                    dispararClique()
-                    statusAcao.Text = "Status: PAROU EM " .. alvoAtual .. "!"
-                    
-                    -- Aguarda a rodada reiniciar e limpa o alvo antigo para pegar o próximo aleatório
-                    task.wait(3)
-                    alvoAtual = nil
-                    statusAlvo.Text = "Alvo da Rodada: Sorteando nova..."
-                    statusAcao.Text = "Status: Aguardando..."
-                    jaApertou = false
-                    break
+    -- 2. SE NÃO ACHOU "Pare em", TENTA O MODO PRÁTICA (Visor gigante no topo)
+    if not tempoAlvo then
+        for _, gui in pairs(workspace:GetDescendants()) do
+            if gui:IsA("TextLabel") then
+                local txt = tostring(gui.Text or "")
+                if string.find(txt, "INTERROGER") or string.find(txt, "TEMPOMÊTRO") then
+                    local num = string.match(txt, "%d+%.%d+")
+                    if num then
+                        tempoAlvo = num
+                        break
+                    end
                 end
+            end
+        end
+    end
+
+    -- Exibe o alvo capturado no painel
+    if tempoAlvo then
+        statusAlvo.Text = "Alvo Atual: " .. tempoAlvo .. "s"
+    else
+        statusAlvo.Text = "Alvo: Procurando aviso..."
+        return
+    end
+
+    -- 3. PROCURA O CRONÔMETRO CORRENTE NA MESA/TELA E CLICA QUANDO BATER O TEMPO ALVO
+    for _, textObj in pairs(workspace:GetDescendants()) do
+        if textObj:IsA("TextLabel") then
+            local valorRelogio = tostring(textObj.Text)
+            
+            -- Se o cronômetro bateu exatamente com o Alvo (Ex: "08.00" ou "8.00")
+            if valorRelogio == tempoAlvo or string.find(valorRelogio, tempoAlvo) then
+                jaApertou = true
+                clicarBotaoProximo()
+                statusAcao.Text = "Status: PARADO EM " .. tempoAlvo .. "!"
+                
+                task.wait(2.5)
+                jaApertou = false
+                statusAcao.Text = "Status: Aguardando próxima rodada..."
+                break
             end
         end
     end
