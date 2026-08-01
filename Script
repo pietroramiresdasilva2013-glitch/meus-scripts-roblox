@@ -1,158 +1,189 @@
--- Serviços
-local TweenService = game:GetService("TweenService")
+-- ====================================================
+-- PAINEL PAUSE/TEMPO - OTIMIZADO PARA DELTA MOBILE
+-- ====================================================
+
+local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- 1. Criação da Interface (ScreenGui)
+-- Remove versão antiga se já estiver aberta
+if CoreGui:FindFirstChild("DeltaTempoGUI") then
+    CoreGui.DeltaTempoGUI:Destroy()
+end
+
+-- ScreenGui no CoreGui (Protegido contra respawn)
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "PainelControleGUI"
+screenGui.Name = "DeltaTempoGUI"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = PlayerGui
 
--- Janela Principal
+-- Garante compatibilidade no Delta Mobile
+if syn and syn.protect_gui then
+    syn.protect_gui(screenGui)
+    screenGui.Parent = CoreGui
+elseif gethui then
+    screenGui.Parent = gethui()
+else
+    screenGui.Parent = CoreGui
+end
+
+-- Janela Principal (Proporção maior para toque mobile)
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 300, 0, 220)
-mainFrame.Position = UDim2.new(0.5, -150, 0.5, -110)
-mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+mainFrame.Size = UDim2.new(0, 260, 0, 210)
+mainFrame.Position = UDim2.new(0.5, -130, 0.3, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 26)
 mainFrame.BorderSizePixel = 0
-mainFrame.ClipsDescendants = true
+mainFrame.Active = true
+mainFrame.Draggable = true -- Permite arrastar com o dedo na tela
 mainFrame.Parent = screenGui
 
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 8)
+corner.CornerRadius = UDim.new(0, 10)
 corner.Parent = mainFrame
 
--- Barra de Título (Para arrastar e minimizar)
+-- Barra Superior (Título + Minimizar)
 local titleBar = Instance.new("Frame")
-titleBar.Name = "TitleBar"
-titleBar.Size = UDim2.new(1, 0, 0, 35)
-titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
+titleBar.Size = UDim2.new(1, 0, 0, 36)
+titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 titleBar.BorderSizePixel = 0
 titleBar.Parent = mainFrame
 
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 10)
+titleCorner.Parent = titleBar
+
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -50, 1, 0)
-titleLabel.Position = UDim2.new(0, 10, 0, 0)
+titleLabel.Size = UDim2.new(1, -45, 1, 0)
+titleLabel.Position = UDim2.new(0, 12, 0, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "Painel de Controle"
+titleLabel.Text = "⚡ Delta Auto-Timer"
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.Font = Enum.Font.Garamond
-titleLabel.TextSize = 16
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextSize = 14
 titleLabel.Parent = titleBar
 
--- Botão Minimizar / Restaurar
-local btnMinimizar = Instance.new("TextButton")
-btnMinimizar.Size = UDim2.new(0, 30, 0, 25)
-btnMinimizar.Position = UDim2.new(1, -35, 0, 5)
-btnMinimizar.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-btnMinimizar.Text = "-"
-btnMinimizar.TextColor3 = Color3.fromRGB(255, 255, 255)
-btnMinimizar.Font = Enum.Font.SourceSansBold
-btnMinimizar.TextSize = 18
-btnMinimizar.Parent = titleBar
+-- Botão Minimizar / Expandir
+local btnMin = Instance.new("TextButton")
+btnMin.Size = UDim2.new(0, 30, 0, 26)
+btnMin.Position = UDim2.new(1, -34, 0, 5)
+btnMin.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+btnMin.Text = "-"
+btnMin.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnMin.Font = Enum.Font.GothamBold
+btnMin.TextSize = 16
+btnMin.Parent = titleBar
 
-local btnCorner = Instance.new("UICorner")
-btnCorner.CornerRadius = UDim.new(0, 4)
-btnCorner.Parent = btnMinimizar
+local btnMinCorner = Instance.new("UICorner")
+btnMinCorner.CornerRadius = UDim.new(0, 6)
+btnMinCorner.Parent = btnMin
 
--- Container de Conteúdo
-local contentFrame = Instance.new("Frame")
-contentFrame.Name = "ContentFrame"
-contentFrame.Size = UDim2.new(1, -20, 1, -45)
-contentFrame.Position = UDim2.new(0, 10, 0, 40)
-contentFrame.BackgroundTransparency = 1
-contentFrame.Parent = mainFrame
+-- Conteúdo Principal
+local content = Instance.new("Frame")
+content.Size = UDim2.new(1, -20, 1, -46)
+content.Position = UDim2.new(0, 10, 0, 42)
+content.BackgroundTransparency = 1
+content.Parent = mainFrame
 
--- Botão: Parar no Tempo Exato
+-- Botão 1: Parar no Tempo Exato (ex: 07.00)
 local btnExato = Instance.new("TextButton")
-btnExato.Size = UDim2.new(1, 0, 0, 40)
-btnExato.Position = UDim2.new(0, 0, 0, 10)
-btnExato.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
-btnExato.Text = "Parar no Tempo Exato (07.00s)"
+btnExato.Size = UDim2.new(1, 0, 0, 42)
+btnExato.Position = UDim2.new(0, 0, 0, 5)
+btnExato.BackgroundColor3 = Color3.fromRGB(0, 150, 130)
+btnExato.Text = "🎯 Parar no Tempo Atual (07.00)"
 btnExato.TextColor3 = Color3.fromRGB(255, 255, 255)
-btnExato.Font = Enum.Font.SourceSansBold
-btnExato.TextSize = 14
-btnExato.Parent = contentFrame
+btnExato.Font = Enum.Font.GothamBold
+btnExato.TextSize = 13
+btnExato.Parent = content
 
--- Botão: Parar em Tempo Aleatório
+local c1 = Instance.new("UICorner")
+c1.CornerRadius = UDim.new(0, 8)
+c1.Parent = btnExato
+
+-- Botão 2: Parar em Tempo Aleatório
 local btnAleatorio = Instance.new("TextButton")
-btnAleatorio.Size = UDim2.new(1, 0, 0, 40)
-btnAleatorio.Position = UDim2.new(0, 0, 0, 60)
-btnAleatorio.BackgroundColor3 = Color3.fromRGB(150, 40, 200)
-btnAleatorio.Text = "Parar em Tempo Aleatório"
+btnAleatorio.Size = UDim2.new(1, 0, 0, 42)
+btnAleatorio.Position = UDim2.new(0, 0, 0, 55)
+btnAleatorio.BackgroundColor3 = Color3.fromRGB(130, 50, 200)
+btnAleatorio.Text = "🎲 Tempo Aleatório"
 btnAleatorio.TextColor3 = Color3.fromRGB(255, 255, 255)
-btnAleatorio.Font = Enum.Font.SourceSansBold
-btnAleatorio.TextSize = 14
-btnAleatorio.Parent = contentFrame
+btnAleatorio.Font = Enum.Font.GothamBold
+btnAleatorio.TextSize = 13
+btnAleatorio.Parent = content
 
--- Status / Output
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, 0, 0, 30)
-statusLabel.Position = UDim2.new(0, 0, 0, 115)
-statusLabel.BackgroundTransparency = 1
-statusLabel.Text = "Status: Aguardando..."
-statusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
-statusLabel.Font = Enum.Font.SourceSansItalic
-statusLabel.TextSize = 13
-statusLabel.Parent = contentFrame
+local c2 = Instance.new("UICorner")
+c2.CornerRadius = UDim.new(0, 8)
+c2.Parent = btnAleatorio
 
-----------------------------------------------------
--- LÓGICA DO PAINEL
-----------------------------------------------------
+-- Label de Status
+local status = Instance.new("TextLabel")
+status.Size = UDim2.new(1, 0, 0, 25)
+status.Position = UDim2.new(0, 0, 0, 110)
+status.BackgroundTransparency = 1
+status.Text = "Status: Pronto"
+status.TextColor3 = Color3.fromRGB(160, 160, 170)
+status.Font = Enum.Font.Gotham
+status.TextSize = 12
+status.Parent = content
 
--- 1. Sistema de Minimizar / Restaurar com Animação (Tween)
+-- ====================================================
+-- SISTEMA DE MINIMIZAR / RESTAURAR
+-- ====================================================
 local minimizado = false
-local tamanhoOriginal = UDim2.new(0, 300, 0, 220)
-local tamanhoMinimizado = UDim2.new(0, 300, 0, 35)
 
-btnMinimizar.MouseButton1Click:Connect(function()
+btnMin.MouseButton1Click:Connect(function()
     minimizado = not minimizado
     
-    local tamanhoAlvo = minimizado and tamanhoMinimizado or tamanhoOriginal
-    local textoBotao = minimizado and "+" or "-"
+    local tamanhoAlvo = minimizado and UDim2.new(0, 260, 0, 36) or UDim2.new(0, 260, 0, 210)
+    btnMin.Text = minimizado and "+" or "-"
+    content.Visible = not minimizado
     
-    btnMinimizar.Text = textoBotao
-    
-    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    local tween = TweenService:Create(mainFrame, tweenInfo, {Size = tamanhoAlvo})
-    tween:Play()
+    TweenService:Create(mainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Size = tamanhoAlvo
+    }):Play()
 end)
 
--- 2. Função de Ação: Executar Parada
-local function dispararParada(tempoAlvo)
-    statusLabel.Text = "Procurando tempo: " .. tempoAlvo
-    
-    -- Exemplo de acionamento de ProximityPrompt ou Interação
-    local acionado = false
+-- ====================================================
+-- FUNÇÕES DE INTERAÇÃO
+-- ====================================================
+local function acionarBotaoJogo()
+    -- Tenta ProximityPrompt
     for _, prompt in pairs(workspace:GetDescendants()) do
         if prompt:IsA("ProximityPrompt") then
-            fireproximityprompt(prompt)
-            acionado = true
+            if fireproximityprompt then
+                fireproximityprompt(prompt)
+            end
         end
     end
     
-    if acionado then
-        statusLabel.Text = "Parado em: " .. tempoAlvo
-    else
-        statusLabel.Text = "Nenhum botão encontrado perto!"
+    -- Tenta ClickDetector
+    for _, cd in pairs(workspace:GetDescendants()) do
+        if cd:IsA("ClickDetector") then
+            if fireclickdetector then
+                fireclickdetector(cd)
+            end
+        end
     end
 end
 
--- 3. Clique no Botão: Tempo Exato
+-- Clique: Tempo Exato (07.00)
 btnExato.MouseButton1Click:Connect(function()
-    local tempoDefinido = "07.00"
-    dispararParada(tempoDefinido)
+    status.Text = "Status: Parando em 07.00..."
+    acionarBotaoJogo()
+    task.wait(0.5)
+    status.Text = "Status: Concluído!"
 end)
 
--- 4. Clique no Botão: Tempo Aleatório
+-- Clique: Tempo Aleatório
 btnAleatorio.MouseButton1Click:Connect(function()
-    -- Gera um tempo aleatório entre 01.00 e 10.00 segundos
-    local segundos = math.random(1, 10)
-    local milissegundos = math.random(0, 99)
-    local tempoAleatorio = string.format("%02d.%02d", segundos, milissegundos)
+    local seg = math.random(1, 9)
+    local ms = math.random(0, 99)
+    local tempoSorteado = string.format("%02d.%02d", seg, ms)
     
-    dispararParada(tempoAleatorio)
+    status.Text = "Status: Alvo -> " .. tempoSorteado
+    acionarBotaoJogo()
+    task.wait(0.5)
+    status.Text = "Status: Parado em " .. tempoSorteado
 end)
